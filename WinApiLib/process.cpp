@@ -3,55 +3,29 @@
 #include <Wbemidl.h>
 #include <map>
 
-template <typename T> T readVariant(IWbemClassObject* pclsObj, std::wstring propertyName) {}
+#include "comhelper.h"
 
-template <> std::wstring readVariant(IWbemClassObject* pclsObj, std::wstring propertyName)
-{
-	VARIANT vtProp;
-	auto hr = pclsObj->Get(propertyName.c_str(), 0, &vtProp, nullptr, nullptr);
-	if (SUCCEEDED(hr))
-	{
-		std::wstring propertyValue(vtProp.bstrVal);
-		VariantClear(&vtProp);
-		return propertyValue;
-	}
-	return L"";
-}
-
-template <> unsigned int readVariant(IWbemClassObject* pclsObj, std::wstring propertyName)
-{
-	VARIANT vtProp;
-	auto hr = pclsObj->Get(propertyName.c_str(), 0, &vtProp, nullptr, nullptr);
-	if (SUCCEEDED(hr))
-	{
-		const auto propertyValue = vtProp.uintVal;
-		VariantClear(&vtProp);
-		return propertyValue;
-	}
-	return -1;
-}
-
-std::map<unsigned int, ProcessInfo> getProcessViaCom(IWbemLocator* pLocator, IWbemServices* pServices)
+std::unique_ptr<std::map<unsigned int, ProcessInfo>> getProcessViaCom(IWbemLocator* pLocator, IWbemServices* pServices)
 {
 	IEnumWbemClassObject* pEnumerator = nullptr;
 	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Process"), WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
 	if (FAILED(hr))
 	{
-		pServices->Release();
-		pLocator->Release();
-		CoUninitialize();
 		return {};
 	}
 
 	IWbemClassObject* pclsObj = nullptr;
 	ULONG uReturn = 0;
-	std::map<unsigned int, ProcessInfo> processInfos;
+
+	std::unique_ptr<std::map<unsigned int, ProcessInfo>> processMap(new std::map<unsigned int, ProcessInfo>());
+
 	while (pEnumerator)
 	{
 		hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
 		if (uReturn == 0)
+		{
 			break;
-
+		}
 		SAFEARRAY* psaNames = nullptr;
 		hr = pclsObj->GetNames(
 			nullptr,
@@ -64,24 +38,24 @@ std::map<unsigned int, ProcessInfo> getProcessViaCom(IWbemLocator* pLocator, IWb
 		SafeArrayGetLBound(psaNames, 1, &lLower);
 		SafeArrayGetUBound(psaNames, 1, &lUpper);
 
-		const auto name = readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
-		auto processId = readVariant<unsigned int>(pclsObj, std::wstring(L"ProcessId"));
-		const auto sessionId = readVariant<unsigned int>(pclsObj, std::wstring(L"SessionId"));
-		const auto parentProcessId = readVariant<unsigned int>(pclsObj, std::wstring(L"ParentProcessId"));
+		const auto name = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
+		auto processId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"ProcessId"));
+		const auto sessionId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"SessionId"));
+		const auto parentProcessId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"ParentProcessId"));
 
 		ProcessInfo pi{ processId, name, sessionId };
 		pi.parentProcessId = parentProcessId;
-		pi.extendedInfo.memoryInfo.PageFaultCount = readVariant<unsigned int>(pclsObj, std::wstring(L"PageFaultCount"));
-		pi.extendedInfo.memoryInfo.QuotaPeakNonPagedPoolUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaPeakNonPagedPoolUsage"));
-		pi.extendedInfo.memoryInfo.QuotaPagedPoolUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaPeakPagedPoolUsage"));
-		pi.extendedInfo.memoryInfo.PageFileUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"PageFileUsage"));
-		pi.extendedInfo.memoryInfo.PeakWorkingSetSize = readVariant<unsigned int>(pclsObj, std::wstring(L"PeakWorkingSetSize"));
-		pi.extendedInfo.memoryInfo.QuotaPagedPoolUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaPagedPoolUsage"));
-		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
-		pi.extendedInfo.memoryInfo.PeakPageFileUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"PeakPageFileUsage"));
-		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
+		pi.extendedInfo.memoryInfo.PageFaultCount = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"PageFaultCount"));
+		pi.extendedInfo.memoryInfo.QuotaPeakNonPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaPeakNonPagedPoolUsage"));
+		pi.extendedInfo.memoryInfo.QuotaPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaPeakPagedPoolUsage"));
+		pi.extendedInfo.memoryInfo.PageFileUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"PageFileUsage"));
+		pi.extendedInfo.memoryInfo.PeakWorkingSetSize = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"PeakWorkingSetSize"));
+		pi.extendedInfo.memoryInfo.QuotaPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaPagedPoolUsage"));
+		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
+		pi.extendedInfo.memoryInfo.PeakPageFileUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"PeakPageFileUsage"));
+		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
 
-		auto wssString = readVariant<std::wstring>(pclsObj, std::wstring(L"WorkingSetSize"));
+		auto wssString = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"WorkingSetSize"));
 		const auto workingSetSize = std::stoll(wssString);
 		pi.extendedInfo.memoryInfo.WorkingSetSize = workingSetSize >> 10;
 
@@ -102,13 +76,26 @@ std::map<unsigned int, ProcessInfo> getProcessViaCom(IWbemLocator* pLocator, IWb
 				}
 			}
 		}
-		processInfos.insert({ processId, pi });
-
+		processMap->insert({ pi.id, pi });
 		pclsObj->Release();
 	}
 
 	pEnumerator->Release();
-	return processInfos;
+
+	for (auto& [processId, pi] : *processMap)
+	{
+		if (processId != 0 && pi.parentProcessId != 0)
+		{
+				if (auto foundParent = processMap->find(pi.parentProcessId); foundParent != processMap->end())
+				{
+					pi.parent = &foundParent->second;
+					foundParent->second.childProcesses.push_back(&pi);
+				}
+		}
+	}
+
+
+	return processMap;
 }
 
 ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
@@ -236,7 +223,7 @@ std::map<DWORD, ProcessInfo> WA::Process::enumerateProcessesTree(bool withMemory
 	return processMap;
 }
 
-std::map<unsigned, ProcessInfo> WA::Process::enumerateProcessesCom()
+std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::enumerateProcessesCom()
 {
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	IWbemLocator* pLocator = nullptr;
@@ -274,7 +261,6 @@ std::map<unsigned, ProcessInfo> WA::Process::enumerateProcessesCom()
 	}
 
 	auto processTree = getProcessViaCom(pLocator, pServices);
-	buildProcessTreeByKnownParentId(processTree);
 	pServices->Release();
 	pLocator->Release();
 	CoUninitialize();
@@ -317,25 +303,4 @@ DWORD WA::Process::buildProcessTreeViaSnapshot(std::map<DWORD, ProcessInfo>& pro
 	}
 	::CloseHandle(hSnapshot);
 	return dwRet;
-}
-
-DWORD WA::Process::buildProcessTreeByKnownParentId(std::map<unsigned int, ProcessInfo>& processMap)
-{
-
-	// get info for each process in the snapshot
-	for (auto& [processId, pi] : processMap)
-	{
-		if (processId != 0 && pi.parentProcessId != 0)
-		{
-			if (auto foundProcess = processMap.find(processId); foundProcess != processMap.end())
-			{
-				if (auto foundParent = processMap.find(pi.parentProcessId); foundParent != processMap.end())
-				{
-					foundProcess->second.parent = &foundParent->second;
-					foundParent->second.childProcesses.push_back(&foundProcess->second);
-				}
-			}
-		}
-	}
-	return 0;
 }

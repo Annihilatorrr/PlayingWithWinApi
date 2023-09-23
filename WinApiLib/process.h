@@ -20,14 +20,14 @@ namespace WA {
 	class DLLEXPORT Process
 	{
 		DWORD buildProcessTreeViaSnapshot(std::map<DWORD, ProcessInfo>& processMap);
-		DWORD buildProcessTreeByKnownParentId(std::map<unsigned int, ProcessInfo>& processMap);
+		std::map<unsigned int, ProcessInfo> buildProcessTree(std::vector<ProcessInfo>& processMap);
 
 	public:
 		
 		ExtendedInfo getExtendedProcessInfo(DWORD processID) const;
 		std::map<DWORD, ProcessInfo> enumerateProcesses(bool withMemoryInfo) const;
 		std::map<DWORD, ProcessInfo> enumerateProcessesTree(bool withMemoryInfo);
-		std::map<unsigned int, ProcessInfo> enumerateProcessesCom();
+		std::unique_ptr<std::map<unsigned int, ProcessInfo>> enumerateProcessesCom();
 
 	};
 }

@@ -31,11 +31,19 @@ struct ExtendedInfo
 };
 struct ProcessInfo
 {
+    ProcessInfo() :id{}, parentProcessId{}, parent{}
+    {
+	    
+    }
     ProcessInfo(DWORD id, std::wstring name, DWORD sessionId):
     id(id),
-    name(std::move(name)),
-        sessionId(sessionId)
-	{}
+    parentProcessId{},
+	name(std::move(name)),
+    sessionId(sessionId),
+	parent{}
+    {
+	    
+    }
 
     DWORD id;     // process id
     DWORD parentProcessId;     // process id
