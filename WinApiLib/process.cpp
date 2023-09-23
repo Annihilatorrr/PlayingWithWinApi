@@ -5,7 +5,7 @@
 
 #include "comhelper.h"
 
-std::unique_ptr<std::map<unsigned int, ProcessInfo>> getProcessViaCom(IWbemLocator* pLocator, IWbemServices* pServices)
+std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTreeByCom(IWbemServices* pServices)
 {
 	IEnumWbemClassObject* pEnumerator = nullptr;
 	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Process"), WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
@@ -86,15 +86,13 @@ std::unique_ptr<std::map<unsigned int, ProcessInfo>> getProcessViaCom(IWbemLocat
 	{
 		if (processId != 0 && pi.parentProcessId != 0)
 		{
-				if (auto foundParent = processMap->find(pi.parentProcessId); foundParent != processMap->end())
-				{
-					pi.parent = &foundParent->second;
-					foundParent->second.childProcesses.push_back(&pi);
-				}
+			if (auto foundParent = processMap->find(pi.parentProcessId); foundParent != processMap->end())
+			{
+				pi.parent = &foundParent->second;
+				foundParent->second.childProcesses.push_back(&pi);
+			}
 		}
 	}
-
-
 	return processMap;
 }
 
@@ -167,11 +165,11 @@ ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
 	return extendedInfo;
 }
 
-std::map<DWORD, ProcessInfo> WA::Process::enumerateProcesses(bool withMemoryInfo) const
+std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::enumerateProcesses(bool withMemoryInfo) const
 {
 	WTS_PROCESS_INFO* pWPIs = nullptr;
 	DWORD dwProcCount = 0;
-	std::map<DWORD, ProcessInfo> processInfos;
+	std::unique_ptr<std::map<DWORD, ProcessInfo>> processInfos(new std::map<DWORD, ProcessInfo>());
 	if (WTSEnumerateProcesses(WTS_CURRENT_SERVER_HANDLE, NULL, 1, &pWPIs, &dwProcCount))
 	{
 		//Go through all processes retrieved
@@ -199,7 +197,7 @@ std::map<DWORD, ProcessInfo> WA::Process::enumerateProcesses(bool withMemoryInfo
 				pi.extendedInfo = getExtendedProcessInfo(pi.id);
 			}
 
-			processInfos.insert({ wtsInfo.ProcessId, pi });
+			processInfos->insert({ wtsInfo.ProcessId, pi });
 		}
 	}
 	else
@@ -216,14 +214,46 @@ std::map<DWORD, ProcessInfo> WA::Process::enumerateProcesses(bool withMemoryInfo
 	return processInfos;
 }
 
-std::map<DWORD, ProcessInfo> WA::Process::enumerateProcessesTree(bool withMemoryInfo)
+std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnapshot(bool withMemoryInfo)
 {
 	auto processMap = enumerateProcesses(withMemoryInfo);
-	buildProcessTreeViaSnapshot(processMap);
+	DWORD dwRet = NO_ERROR;
+	// take a snapshot of processes
+	DWORD dwFlags = TH32CS_SNAPPROCESS;
+	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(dwFlags, 0);
+	if (INVALID_HANDLE_VALUE == hSnapshot)
+	{
+		return {};
+	}
+	PROCESSENTRY32 processEntry = { 0 };
+	processEntry.dwSize = sizeof(PROCESSENTRY32);
+	// get info for each process in the snapshot
+	if (::Process32First(hSnapshot, &processEntry))
+	{
+		do
+		{
+			if (processEntry.th32ProcessID != 0 && processEntry.th32ParentProcessID != 0)
+			{
+				if (auto foundProcess = processMap->find(processEntry.th32ProcessID); foundProcess != processMap->end())
+				{
+					if (auto foundParent = processMap->find(processEntry.th32ParentProcessID); foundParent != processMap->end())
+					{
+						foundProcess->second.parent = &foundParent->second;
+						foundParent->second.childProcesses.push_back(&foundProcess->second);
+					}
+				}
+			}
+		} while (::Process32Next(hSnapshot, &processEntry));
+	}
+	else
+	{
+		dwRet = ::GetLastError();
+	}
+	::CloseHandle(hSnapshot);
 	return processMap;
 }
 
-std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::enumerateProcessesCom()
+std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTreeByCom()
 {
 	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
 	IWbemLocator* pLocator = nullptr;
@@ -260,47 +290,9 @@ std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::enumerateProce
 		}
 	}
 
-	auto processTree = getProcessViaCom(pLocator, pServices);
+	auto processTree = getProcessTreeByCom(pServices);
 	pServices->Release();
 	pLocator->Release();
 	CoUninitialize();
 	return processTree;
-}
-
-DWORD WA::Process::buildProcessTreeViaSnapshot(std::map<DWORD, ProcessInfo>& processMap)
-{
-	DWORD dwRet = NO_ERROR;
-	// take a snapshot of processes
-	DWORD dwFlags = TH32CS_SNAPPROCESS;
-	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(dwFlags, 0);
-	if (INVALID_HANDLE_VALUE == hSnapshot)
-	{
-		return ::GetLastError();
-	}
-	PROCESSENTRY32 processEntry = { 0 };
-	processEntry.dwSize = sizeof(PROCESSENTRY32);
-	// get info for each process in the snapshot
-	if (::Process32First(hSnapshot, &processEntry))
-	{
-		do
-		{
-			if (processEntry.th32ProcessID != 0 && processEntry.th32ParentProcessID != 0)
-			{
-				if (auto foundProcess = processMap.find(processEntry.th32ProcessID); foundProcess != processMap.end())
-				{
-					if (auto foundParent = processMap.find(processEntry.th32ParentProcessID); foundParent != processMap.end())
-					{
-						foundProcess->second.parent = &foundParent->second;
-						foundParent->second.childProcesses.push_back(&foundProcess->second);
-					}
-				}
-			}
-		} while (::Process32Next(hSnapshot, &processEntry));
-	}
-	else
-	{
-		dwRet = ::GetLastError();
-	}
-	::CloseHandle(hSnapshot);
-	return dwRet;
 }

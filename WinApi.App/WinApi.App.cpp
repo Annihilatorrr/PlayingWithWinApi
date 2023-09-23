@@ -8,8 +8,18 @@
 #include "../WinApiLib/process.h"
 #include <algorithm>
 
+struct separate_thousands : std::numpunct<wchar_t> {
+    char_type do_thousands_sep() const override { return ','; }  // separate with commas
+    std::string do_grouping() const
+    {
+        return "\3";
+    } // groups of 3 digit
+};
+
 void printProcesses(const ProcessInfo& pi, bool recursively = false, int level = 0)
 {
+    //std::string formatted = std::vformat("{:0.}", std::make_format_args(pi.extendedInfo.memoryInfo.WorkingSetSize));
+    //auto thousands = std::make_unique<separate_thousands>();
     std::wcout
         << std::setw(level)
         << std::right
@@ -18,7 +28,9 @@ void printProcesses(const ProcessInfo& pi, bool recursively = false, int level =
         << std::setw(6) << pi.id << " "
         << std::setfill(L'.')
         << std::setw(50 + level) << pi.name
-        << std::setfill(L' ')
+        << std::setfill(L' ');
+    //std::wcout.imbue(std::locale(std::wcout.getloc(), thousands.release()));
+    std::wcout
         << std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.WorkingSetSize)
         << std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.PageFileUsage)
         << std::setw(16) << (!pi.processIs32Bit? "64bit":"32bit")
@@ -45,7 +57,7 @@ int main()
     
     WA::Process pr;
     //auto processes = pr.enumerateProcessesTree(true, MulFactor::Kb);
-    auto processes = pr.enumerateProcessesCom();
+    auto processes = pr.getProcessTreeByCom();
     auto range{ *processes | std::views::values };
     std::vector sortedProcesses(range.begin(), range.end());
     std::sort(sortedProcesses.begin(), sortedProcesses.end(),
