@@ -8,18 +8,8 @@
 #include "../WinApiLib/process.h"
 #include <algorithm>
 
-struct separate_thousands : std::numpunct<wchar_t> {
-    char_type do_thousands_sep() const override { return ','; }  // separate with commas
-    std::string do_grouping() const
-    {
-        return "\3";
-    } // groups of 3 digit
-};
-
 void printProcesses(const ProcessInfo& pi, bool recursively = false, int level = 0)
 {
-    //std::string formatted = std::vformat("{:0.}", std::make_format_args(pi.extendedInfo.memoryInfo.WorkingSetSize));
-    //auto thousands = std::make_unique<separate_thousands>();
     std::wcout
         << std::setw(level)
         << std::right
@@ -29,7 +19,6 @@ void printProcesses(const ProcessInfo& pi, bool recursively = false, int level =
         << std::setfill(L'.')
         << std::setw(50 + level) << pi.name
         << std::setfill(L' ');
-    //std::wcout.imbue(std::locale(std::wcout.getloc(), thousands.release()));
     std::wcout
         << std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.WorkingSetSize)
         << std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.PageFileUsage)
@@ -45,26 +34,17 @@ void printProcesses(const ProcessInfo& pi, bool recursively = false, int level =
     }
 }
 
-
-
-
-#pragma comment(lib, "wbemuuid.lib")
-
-
-
 int main()
 {
-    
     WA::Process pr;
-    //auto processes = pr.enumerateProcessesTree(true, MulFactor::Kb);
-    auto processes = pr.getProcessTreeByCom();
+    const auto processes = pr.getProcessTreeByCom();
     auto range{ *processes | std::views::values };
     std::vector sortedProcesses(range.begin(), range.end());
-    std::sort(sortedProcesses.begin(), sortedProcesses.end(),
-        [](const auto& a, const auto& b)
-        {
-            return a.extendedInfo.memoryInfo.WorkingSetSize > b.extendedInfo.memoryInfo.WorkingSetSize;
-        });
+    std::ranges::sort(sortedProcesses,
+                      [](const auto& a, const auto& b)
+                      {
+	                      return a.extendedInfo.memoryInfo.WorkingSetSize > b.extendedInfo.memoryInfo.WorkingSetSize;
+                      });
     std::wcout
 		<< std::left
         << std::setw(6) << "PID" << " "
@@ -79,10 +59,6 @@ int main()
     {
         printProcesses(process, true);
     }
- /*   for(const auto& [processId, process]: *processes)
-    {
-        printProcesses(process, true);
-    }*/
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

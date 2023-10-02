@@ -165,7 +165,7 @@ ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
 	return extendedInfo;
 }
 
-std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::enumerateProcesses(bool withMemoryInfo) const
+std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnapshot(bool withMemoryInfo) const
 {
 	WTS_PROCESS_INFO* pWPIs = nullptr;
 	DWORD dwProcCount = 0;
@@ -214,16 +214,16 @@ std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::enumerateProcesses(bo
 	return processInfos;
 }
 
-std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnapshot(bool withMemoryInfo)
+std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnapshot()
 {
-	auto processMap = enumerateProcesses(withMemoryInfo);
+	auto processMap = getProcessTreeBySnapshot(true);
 	DWORD dwRet = NO_ERROR;
 	// take a snapshot of processes
 	DWORD dwFlags = TH32CS_SNAPPROCESS;
 	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(dwFlags, 0);
 	if (INVALID_HANDLE_VALUE == hSnapshot)
 	{
-		return {};
+		return {};	
 	}
 	PROCESSENTRY32 processEntry = { 0 };
 	processEntry.dwSize = sizeof(PROCESSENTRY32);
