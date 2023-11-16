@@ -5,7 +5,7 @@
 
 #include "comhelper.h"
 
-std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTreeByCom(IWbemServices* pServices)
+std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServices* pServices)
 {
 	IEnumWbemClassObject* pEnumerator = nullptr;
 	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Process"), WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
@@ -17,7 +17,7 @@ std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTree
 	IWbemClassObject* pclsObj = nullptr;
 	ULONG uReturn = 0;
 
-	std::unique_ptr<std::map<unsigned int, ProcessInfo>> processMap(new std::map<unsigned int, ProcessInfo>());
+	std::map<unsigned int, ProcessInfo> processMap;
 
 	while (pEnumerator)
 	{
@@ -26,13 +26,14 @@ std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTree
 		{
 			break;
 		}
+		
 		SAFEARRAY* psaNames = nullptr;
 		hr = pclsObj->GetNames(
 			nullptr,
 			WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY,
 			nullptr,
 			&psaNames);
-
+		
 		// Get the number of properties.
 		long lLower, lUpper;
 		SafeArrayGetLBound(psaNames, 1, &lLower);
@@ -76,23 +77,13 @@ std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTree
 				}
 			}
 		}
-		processMap->insert({ pi.id, pi });
+		SafeArrayDestroy(psaNames);
+		processMap.insert({ pi.id, pi });
 		pclsObj->Release();
 	}
 
 	pEnumerator->Release();
 
-	for (auto& [processId, pi] : *processMap)
-	{
-		if (processId != 0 && pi.parentProcessId != 0)
-		{
-			if (auto foundParent = processMap->find(pi.parentProcessId); foundParent != processMap->end())
-			{
-				pi.parent = &foundParent->second;
-				foundParent->second.childProcesses.push_back(&pi);
-			}
-		}
-	}
 	return processMap;
 }
 
@@ -165,11 +156,11 @@ ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
 	return extendedInfo;
 }
 
-std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnapshot(bool withMemoryInfo) const
+std::map<DWORD, ProcessInfo> WA::Process::getProcessTreeBySnapshot(bool withMemoryInfo) const
 {
 	WTS_PROCESS_INFO* pWPIs = nullptr;
 	DWORD dwProcCount = 0;
-	std::unique_ptr<std::map<DWORD, ProcessInfo>> processInfos(new std::map<DWORD, ProcessInfo>());
+	std::map<DWORD, ProcessInfo> processInfos;
 	if (WTSEnumerateProcesses(WTS_CURRENT_SERVER_HANDLE, NULL, 1, &pWPIs, &dwProcCount))
 	{
 		//Go through all processes retrieved
@@ -197,7 +188,7 @@ std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnaps
 				pi.extendedInfo = getExtendedProcessInfo(pi.id);
 			}
 
-			processInfos->insert({ wtsInfo.ProcessId, pi });
+			processInfos.insert({ wtsInfo.ProcessId, pi });
 		}
 	}
 	else
@@ -214,48 +205,16 @@ std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnaps
 	return processInfos;
 }
 
-std::unique_ptr<std::map<DWORD, ProcessInfo>> WA::Process::getProcessTreeBySnapshot()
+std::map<DWORD, ProcessInfo> WA::Process::getProcessTreeBySnapshot()
 {
 	auto processMap = getProcessTreeBySnapshot(true);
-	DWORD dwRet = NO_ERROR;
-	// take a snapshot of processes
-	DWORD dwFlags = TH32CS_SNAPPROCESS;
-	HANDLE hSnapshot = ::CreateToolhelp32Snapshot(dwFlags, 0);
-	if (INVALID_HANDLE_VALUE == hSnapshot)
-	{
-		return {};	
-	}
-	PROCESSENTRY32 processEntry = { 0 };
-	processEntry.dwSize = sizeof(PROCESSENTRY32);
-	// get info for each process in the snapshot
-	if (::Process32First(hSnapshot, &processEntry))
-	{
-		do
-		{
-			if (processEntry.th32ProcessID != 0 && processEntry.th32ParentProcessID != 0)
-			{
-				if (auto foundProcess = processMap->find(processEntry.th32ProcessID); foundProcess != processMap->end())
-				{
-					if (auto foundParent = processMap->find(processEntry.th32ParentProcessID); foundParent != processMap->end())
-					{
-						foundProcess->second.parent = &foundParent->second;
-						foundParent->second.childProcesses.push_back(&foundProcess->second);
-					}
-				}
-			}
-		} while (::Process32Next(hSnapshot, &processEntry));
-	}
-	else
-	{
-		dwRet = ::GetLastError();
-	}
-	::CloseHandle(hSnapshot);
+	
 	return processMap;
 }
 
-std::unique_ptr<std::map<unsigned int, ProcessInfo>> WA::Process::getProcessTreeByCom()
+std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom()
 {
-	CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    CoInitialize(nullptr);
 	IWbemLocator* pLocator = nullptr;
 	IWbemServices* pServices = nullptr;
 

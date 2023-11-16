@@ -25,26 +25,30 @@ void printProcesses(const ProcessInfo& pi, bool recursively = false, int level =
         << std::setw(16) << (!pi.processIs32Bit? "64bit":"32bit")
         << std::endl;
 
-    if (recursively)
+    /*if (recursively)
     {
         for (const auto& child : pi.childProcesses)
         {
-            printProcesses(*child, recursively, level + 2);
+            printProcesses(child, recursively, level + 2);
         }
-    }
+    }*/
 }
 
 int main()
 {
     WA::Process pr;
-    const auto processes = pr.getProcessTreeByCom();
-    auto range{ *processes | std::views::values };
-    std::vector sortedProcesses(range.begin(), range.end());
-    std::ranges::sort(sortedProcesses,
-                      [](const auto& a, const auto& b)
-                      {
-	                      return a.extendedInfo.memoryInfo.WorkingSetSize > b.extendedInfo.memoryInfo.WorkingSetSize;
-                      });
+
+    while (true)
+    {
+        const auto processes = pr.getProcessTreeByCom();
+        auto range{ processes | std::views::values };
+        std::vector sortedProcesses(range.begin(), range.end());
+        std::ranges::sort(sortedProcesses,
+            [](const auto& a, const auto& b)
+            {
+                return a.extendedInfo.memoryInfo.WorkingSetSize > b.extendedInfo.memoryInfo.WorkingSetSize;
+            });
+    }
     std::wcout
 		<< std::left
         << std::setw(6) << "PID" << " "
@@ -55,10 +59,10 @@ int main()
         << std::endl;
 
     std::wcout << std::setfill(L'-') << std::setw(100) << "-" << std::endl;
-    for (const auto& process : sortedProcesses)
+    /*for (const auto& process : sortedProcesses)
     {
         printProcesses(process, true);
-    }
+    }*/
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu
