@@ -19,7 +19,7 @@ void TreeItem::addChild(TreeItem *item)
 }
 
 TreeItem::TreeItem(const QList<QVariant> &data, TreeItem *parent):
-    m_parent(parent), m_itemData(data), m_id(0xffffffff),m_isReadyToDelete(false)
+    m_parent(parent), m_itemData(data), m_id(7777777),m_isReadyToDelete(false)
 {
 
 }

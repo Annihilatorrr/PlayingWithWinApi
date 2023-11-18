@@ -74,7 +74,9 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
                 if (!existintgChild)
                 {
                     rootItem->addChild(itemsTree[processId]);
-                    addItem(itemsTree[processId], QModelIndex());
+                    QModelIndex emptyRootIndex;
+                    QPersistentModelIndex prs(emptyRootIndex);
+                    addItem(itemsTree[processId], emptyRootIndex);
                 }
                 updateRow(processId);
             }
@@ -299,6 +301,10 @@ QModelIndex TreeModel::parent(const QModelIndex &index) const
 
     //qDebug() << "Asking parent for row" << index.row() << "column" << index.column();
     TreeItem *childItem = getItemByIndex(index);
+    if (childItem == rootItem)
+    {
+        return QModelIndex();
+    }
     TreeItem *parentItem = childItem->getParent();
 
     if (parentItem == nullptr || parentItem == rootItem)
