@@ -74,9 +74,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
                 if (!existintgChild)
                 {
                     rootItem->addChild(itemsTree[processId]);
-                    QModelIndex emptyRootIndex;
-                    QPersistentModelIndex prs(emptyRootIndex);
-                    addItem(itemsTree[processId], emptyRootIndex);
+                    addItem(itemsTree[processId], QModelIndex());
                 }
                 updateRow(processId);
             }
@@ -87,6 +85,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             if (!existintgChild)
             {
                 rootItem->addChild(itemsTree[processId]);
+                //addItem(itemsTree[processId], QModelIndex());
             }
             updateRow(processId);
         }
@@ -166,7 +165,19 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
     TreeItem *item = getItemByIndex(index);
 
     //qDebug() << "Getting Data: " << item->data(index.column()) << " at index" << index.column();
-    return item->data(index.column());
+    switch(index.column())
+    {
+    case 0:
+        return item->getName();
+    case 1:
+        return item->getId();
+    case 2:
+        return item->getPageFileUsage();
+    case 3:
+        return item->getMorkingSetSize();
+    default:
+        return {};
+    }
 }
 
 Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
@@ -225,7 +236,17 @@ bool TreeModel::removeItem(SIZE_T processId)
     // if direct parent is not visible (or hasn't been made visible so far), just change internal structure
     // without informing the view
     int row = item->getRow();
-    item->getParent()->removeChild(row);
+    auto parent = item->getParent();
+    if (parent == rootItem)
+    {
+        beginRemoveRows(QModelIndex(), row, row);
+        parent->removeChild(row);
+        endRemoveRows();
+    }
+    else
+    {
+        item->getParent()->removeChild(row);
+    }
     _persistentIndices.erase(processId);
     return true;
 }

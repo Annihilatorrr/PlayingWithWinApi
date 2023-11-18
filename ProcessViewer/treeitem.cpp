@@ -40,7 +40,7 @@ void TreeItem::clearChildren()
 
 int TreeItem::getRow() const
 {
-    return m_parent ? m_parent->m_children.indexOf(const_cast<TreeItem*>(this)) : 0;
+    return m_parent->m_children.indexOf(const_cast<TreeItem*>(this));
 }
 
 TreeItem* TreeItem::getChildById(SIZE_T id)

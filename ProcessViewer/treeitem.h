@@ -72,23 +72,6 @@ public:
     bool removeChildById(SIZE_T id);
     void clearChildren();
 
-    QVariant data(int column) const
-    {
-        switch(column)
-        {
-        case 0:
-            return m_id;
-        case 1:
-            return m_name;
-        case 2:
-            return m_pageFileUsage;
-        case 3:
-            return m_workingSetSize;
-        default:
-            return {};
-        }
-    }
-
     int getRow() const;
 
 };
