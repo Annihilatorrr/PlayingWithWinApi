@@ -20,8 +20,8 @@ int main(int argc, char *argv[])
         }
     }
 
-MainWindow w(ProcessService{});
-//    MainWindow w(FakeProcessService{});
+    MainWindow w(ProcessService{});
+    //MainWindow w(FakeProcessService{});
     w.show();
 try {
         a.exec();

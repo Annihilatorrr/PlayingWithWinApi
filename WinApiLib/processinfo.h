@@ -1,7 +1,8 @@
 #pragma once
 #include <string>
-
-#include "framework.h"
+#include <windows.h>
+#include <vector>
+#include "perfrawdata.h"
 
 struct ModuleInfo
 {
@@ -13,14 +14,14 @@ struct ModuleInfo
 struct MemoryInfo
 {
     DWORD PageFaultCount;
-    SIZE_T PeakWorkingSetSize;
-    SIZE_T WorkingSetSize;
-    SIZE_T QuotaPeakPagedPoolUsage;
-    SIZE_T QuotaPagedPoolUsage;
-    SIZE_T QuotaPeakNonPagedPoolUsage;
-    SIZE_T QuotaNonPagedPoolUsage;
-    SIZE_T PageFileUsage;
-    SIZE_T PeakPageFileUsage;
+    size_t PeakWorkingSetSize;
+    size_t WorkingSetSize;
+    size_t QuotaPeakPagedPoolUsage;
+    size_t QuotaPagedPoolUsage;
+    size_t QuotaPeakNonPagedPoolUsage;
+    size_t QuotaNonPagedPoolUsage;
+    size_t PageFileUsage;
+    size_t PeakPageFileUsage;
 };
 
 struct ExtendedInfo
@@ -58,9 +59,13 @@ struct ProcessInfo
     std::wstring name; // name of process
     DWORD sessionId;     // session id
     std::wstring userSid;       // user's SID
+    std::wstring commandLine;
+    std::wstring executablePath;
     ExtendedInfo extendedInfo;
 
     USHORT windowsIs32Bit;
     USHORT processIs32Bit;
+    std::wstring description;
+    PerfRawData perfData;
 };
 

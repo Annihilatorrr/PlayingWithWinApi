@@ -30,9 +30,9 @@ public:
     void setupUi();
     void retranslateUi();
     ~MainWindow();
+    void OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher);
 
 private:
 public slots:
-    void FinishedFormat();
 };
 #endif // MAINWINDOW_H

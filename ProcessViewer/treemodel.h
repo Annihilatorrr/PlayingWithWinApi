@@ -5,6 +5,7 @@
 
 #include <process.h>
 #include <vector>
+#include "processinfo.h"
 class TreeItem;
 
 class TreeModel : public QAbstractItemModel
@@ -12,15 +13,19 @@ class TreeModel : public QAbstractItemModel
     Q_OBJECT
 
     std::map<unsigned int, TreeItem*> itemsTree;
-
+    unsigned int m_processorCount = std::thread::hardware_concurrency();
 public:
 
     enum class Properties
     {
         ProcessName = 0,
-        PID = 1,
-        PrivateBytes = 2,
-        WorkingSet = 3,
+        PID,
+        PrivateBytes,
+        WorkingSet,
+        ExecutablePath,
+//        Frequency = 5,
+//        Percent = 6,
+        CpuUsage,
         END
     };
 
@@ -30,13 +35,15 @@ public:
          {TreeModel::Properties::PID, "PID"},
          {TreeModel::Properties::PrivateBytes, "Private Bytes"},
          {TreeModel::Properties::WorkingSet, "Working Set"},
+         {TreeModel::Properties::ExecutablePath, "ExecutablePath"},
+         {TreeModel::Properties::CpuUsage, "Cpu Usage"},
          };
 
     TreeModel(QObject *parent = 0);
-    mutable std::map<SIZE_T, QPersistentModelIndex> _persistentIndices;
+    mutable std::map<size_t, QPersistentModelIndex> _persistentIndices;
     void load(std::map<unsigned int, ProcessInfo> &data);
     ~TreeModel();
-    std::map<SIZE_T, QPersistentModelIndex> getPersistentIndices()
+    std::map<size_t, QPersistentModelIndex> getPersistentIndices()
     {
         return _persistentIndices;
     }
@@ -52,12 +59,11 @@ public:
 
     void addItem(TreeItem* item, const QModelIndex& parentIndex);
     bool removeItem(SIZE_T processId);
-    bool updateRow(SIZE_T id);
+    bool updateRow(size_t id);
 
 private:
     void setupModelData(const QStringList &lines, TreeItem *parent);
-    void fillRec(ProcessInfo& data, TreeItem* parent);
-    TreeItem *rootItem;
+    TreeItem *m_rootItem;
 };
 
 #endif // TREEMODEL_H

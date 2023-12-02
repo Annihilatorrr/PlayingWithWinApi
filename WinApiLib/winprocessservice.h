@@ -15,19 +15,22 @@
 
 #include "erroroutput.h"
 #include "mulfactor.h"
+
+#include "iwinprocessservice.h"
 #include "processinfo.h"
 
 namespace WA {
-	class DLLEXPORT Process
+	class DLLEXPORT WinProcessService: public IWinProcessService
 	{
 		std::map<unsigned int, ProcessInfo> getProcessTreeByCom(IWbemServices* pServices);
 		std::map<DWORD, ProcessInfo> getProcessTreeBySnapshot(bool withMemoryInfo) const;
 
 		ExtendedInfo getExtendedProcessInfo(DWORD processID) const;
+		std::map<unsigned int, PerfRawData> getProcessUsageInfo(IWbemServices* pServices);
 
 	public:
 		
-		std::map<DWORD, ProcessInfo> getProcessTreeBySnapshot();
+		std::map<DWORD, ProcessInfo> getProcessTreeBySnapshot() const;
 		std::map<unsigned int, ProcessInfo> getProcessTreeByCom();
 
 	};

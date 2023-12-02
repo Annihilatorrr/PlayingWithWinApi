@@ -1,12 +1,94 @@
-#include "process.h"
+#include "winprocessservice.h"
 #include <comdef.h>
 #include <Wbemidl.h>
 #include <map>
+#include <set>
 
 #include "comhelper.h"
+#include "perfrawdata.h"
 
-std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServices* pServices)
+std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(IWbemServices* pServices)
 {
+	IEnumWbemClassObject* pEnumerator = nullptr;
+	std::map<unsigned int, PerfRawData> data;
+	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PerfRawData_PerfProc_Process"),
+		WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
+	if (FAILED(hr))
+	{
+		return{};
+	}
+
+	IWbemClassObject* pclsObj = nullptr;
+	ULONG uReturn = 0;
+
+	std::map<unsigned int, ProcessInfo> processMap;
+	std::set<std::wstring> propertiesNames;
+
+	while (pEnumerator)
+	{
+		hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+		if (uReturn == 0 || FAILED(hr))
+		{
+			break;
+		}
+
+		SAFEARRAY* psaNames = nullptr;
+		hr = pclsObj->GetNames(
+			nullptr,
+			WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY,
+			nullptr,
+			&psaNames);
+		if (propertiesNames.empty())
+		{
+			VARIANT* raw;
+			HRESULT hr = SafeArrayAccessData(psaNames, reinterpret_cast<void**>(&raw)); // direct access to SA memory
+			if (SUCCEEDED(hr))
+			{
+				long lLower, lUpper;
+				SafeArrayGetLBound(psaNames, 1, &lLower);
+				SafeArrayGetUBound(psaNames, 1, &lUpper);
+
+				long elementCnt = lUpper - lLower + 1;
+				for (LONG i = 0; i < elementCnt; ++i)  // iterate through returned values
+				{
+					_bstr_t		str;
+					wchar_t* pwszPropName = nullptr;
+					SafeArrayGetElement(psaNames, &i, &pwszPropName);
+					propertiesNames.insert(pwszPropName);
+				}
+			}
+
+			hr = ::SafeArrayUnaccessData(psaNames);
+		}
+		SafeArrayDestroy(psaNames);
+
+		const auto name = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
+		//std::wcout << "--- Process " << name << std::endl;
+		//for (auto& pn : propertiesNames)
+		//{
+		//	std::wcout << '\t' << pn << L":" << ComHelper::readVariant<BSTR>(pclsObj, pn) << std::endl;
+		//}
+
+		const auto caption = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Caption"));
+
+		PerfRawData perfData;
+		perfData.processId = ComHelper::readVariant<UINT>(pclsObj, std::wstring(L"IDProcess"));
+		auto timestampSys100NS = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Timestamp_Sys100NS"));
+		perfData.frequency100Ns = stoull(timestampSys100NS);
+		auto pt = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"PercentProcessorTime"));
+		perfData.percentProcessorTime = std::stoull(pt);
+		data[perfData.processId] = perfData;
+		if (name == L"ProcessViewer")
+		{
+			std::cout << perfData.frequency100Ns << " " << perfData.percentProcessorTime << std::endl;
+		}
+
+	}
+	return data;
+}
+std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom(IWbemServices* pServices)
+{
+	auto perfData = getProcessUsageInfo(pServices);
 	IEnumWbemClassObject* pEnumerator = nullptr;
 	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_Process"), WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
 	if (FAILED(hr))
@@ -18,6 +100,7 @@ std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServic
 	ULONG uReturn = 0;
 
 	std::map<unsigned int, ProcessInfo> processMap;
+	std::set<std::wstring> propertiesNames;
 
 	while (pEnumerator)
 	{
@@ -26,14 +109,35 @@ std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServic
 		{
 			break;
 		}
-		
+
 		SAFEARRAY* psaNames = nullptr;
 		hr = pclsObj->GetNames(
 			nullptr,
 			WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY,
 			nullptr,
 			&psaNames);
-		
+		if (propertiesNames.empty())
+		{
+			VARIANT* raw;
+			HRESULT hr = SafeArrayAccessData(psaNames, reinterpret_cast<void**>(&raw)); // direct access to SA memory
+			if (SUCCEEDED(hr))
+			{
+				long lLower, lUpper;
+				SafeArrayGetLBound(psaNames, 1, &lLower);
+				SafeArrayGetUBound(psaNames, 1, &lUpper);
+
+				long elementCnt = lUpper - lLower + 1;
+				for (LONG i = 0; i < elementCnt; ++i)  // iterate through returned values
+				{
+					_bstr_t		str;
+					wchar_t* pwszPropName = nullptr;
+					SafeArrayGetElement(psaNames, &i, &pwszPropName);
+					propertiesNames.insert(pwszPropName);
+				}
+			}
+
+			hr = ::SafeArrayUnaccessData(psaNames);
+		}
 		// Get the number of properties.
 		long lLower, lUpper;
 		SafeArrayGetLBound(psaNames, 1, &lLower);
@@ -43,6 +147,12 @@ std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServic
 		auto processId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"ProcessId"));
 		const auto sessionId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"SessionId"));
 		const auto parentProcessId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"ParentProcessId"));
+
+		/*	std::wcout << "Process " << name << std::endl;
+			for (auto& pn: propertiesNames)
+			{
+				std::wcout << '\t' << pn << L":" << ComHelper::readVariant<BSTR>(pclsObj, pn) << std::endl;
+			}*/
 
 		ProcessInfo pi{ processId, name, sessionId };
 		pi.parentProcessId = parentProcessId;
@@ -55,10 +165,16 @@ std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServic
 		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
 		pi.extendedInfo.memoryInfo.PeakPageFileUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"PeakPageFileUsage"));
 		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
+		pi.extendedInfo.memoryInfo.QuotaNonPagedPoolUsage = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"QuotaNonPagedPoolUsage"));
+		pi.description = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Description"));
+		pi.commandLine = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"CommandLine"));
+		pi.executablePath = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"ExecutablePath"));
 
 		auto wssString = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"WorkingSetSize"));
 		const auto workingSetSize = std::stoll(wssString);
 		pi.extendedInfo.memoryInfo.WorkingSetSize = workingSetSize >> 10;
+
+		pi.perfData = perfData[processId];
 
 		USHORT processMachine;
 		USHORT nativeMachine;
@@ -87,7 +203,7 @@ std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom(IWbemServic
 	return processMap;
 }
 
-ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
+ExtendedInfo WA::WinProcessService::getExtendedProcessInfo(DWORD processID) const
 {
 	PROCESS_MEMORY_COUNTERS pmc;
 
@@ -99,8 +215,8 @@ ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
 	{
 		if (processID == 172)
 		{
-			SIZE_T inSz;
-			SIZE_T outSz;
+			size_t inSz;
+			size_t outSz;
 			GetProcessWorkingSetSize(hProcess, &inSz, &outSz);
 			int r{};
 		}
@@ -156,27 +272,25 @@ ExtendedInfo WA::Process::getExtendedProcessInfo(DWORD processID) const
 	return extendedInfo;
 }
 
-std::map<DWORD, ProcessInfo> WA::Process::getProcessTreeBySnapshot(bool withMemoryInfo) const
+std::map<DWORD, ProcessInfo> WA::WinProcessService::getProcessTreeBySnapshot(bool withMemoryInfo) const
 {
-	WTS_PROCESS_INFO* pWPIs = nullptr;
-	DWORD dwProcCount = 0;
+	WTS_PROCESS_INFO* processInfoArray = nullptr;
+	DWORD processCount = 0;
 	std::map<DWORD, ProcessInfo> processInfos;
-	if (WTSEnumerateProcesses(WTS_CURRENT_SERVER_HANDLE, NULL, 1, &pWPIs, &dwProcCount))
+	if (WTSEnumerateProcesses(WTS_CURRENT_SERVER_HANDLE, NULL, 1, &processInfoArray, &processCount))
 	{
 		//Go through all processes retrieved
-		for (DWORD i = 0; i < dwProcCount; i++)
+		for (DWORD i = 0; i < processCount; i++)
 		{
-			const auto& wtsInfo = pWPIs[i];
-			ProcessInfo pi(wtsInfo.ProcessId, wtsInfo.pProcessName, wtsInfo.SessionId);
+			ProcessInfo processInfo(processInfoArray[i].ProcessId, processInfoArray[i].pProcessName, processInfoArray[i].SessionId);
 
-			LPWSTR sidStringBuffer{};
-
-			if (wtsInfo.pUserSid != nullptr)
+			if (processInfoArray[i].pUserSid != nullptr)
 			{
+				LPWSTR sidStringBuffer{};
 				// Allocate a buffer of the required size
-				if (ConvertSidToStringSid(wtsInfo.pUserSid, &sidStringBuffer))
+				if (ConvertSidToStringSid(processInfoArray[i].pUserSid, &sidStringBuffer))
 				{
-					pi.userSid.assign(sidStringBuffer);// = user SID that started the process
+					processInfo.userSid.assign(sidStringBuffer);// = user SID that started the process
 				}
 				else
 				{
@@ -185,36 +299,37 @@ std::map<DWORD, ProcessInfo> WA::Process::getProcessTreeBySnapshot(bool withMemo
 			}
 			if (withMemoryInfo)
 			{
-				pi.extendedInfo = getExtendedProcessInfo(pi.id);
+				processInfo.extendedInfo = getExtendedProcessInfo(processInfo.id);
 			}
 
-			processInfos.insert({ wtsInfo.ProcessId, pi });
+			processInfos.insert({ processInfoArray[i].ProcessId, processInfo });
 		}
 	}
 	else
 	{
-		std::cout << "Failed to enum processes " << GetLastError() << std::endl;
+		const std::string errorMessage{ std::format("Error while enumerating processes using WTSEnumerateProcesses."
+													"Error code: {}", std::to_string(GetLastError())) };
+		throw std::runtime_error(errorMessage);
 	}
 
 	//Free memory
-	if (pWPIs)
+	if (processInfoArray)
 	{
-		WTSFreeMemory(pWPIs);
-		pWPIs = nullptr;
+		WTSFreeMemory(processInfoArray);
+		processInfoArray = nullptr;
 	}
 	return processInfos;
 }
 
-std::map<DWORD, ProcessInfo> WA::Process::getProcessTreeBySnapshot()
+std::map<DWORD, ProcessInfo> WA::WinProcessService::getProcessTreeBySnapshot() const
 {
 	auto processMap = getProcessTreeBySnapshot(true);
-	
 	return processMap;
 }
 
-std::map<unsigned int, ProcessInfo> WA::Process::getProcessTreeByCom()
+std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom()
 {
-    CoInitialize(nullptr);
+	CoInitialize(nullptr);
 	IWbemLocator* pLocator = nullptr;
 	IWbemServices* pServices = nullptr;
 

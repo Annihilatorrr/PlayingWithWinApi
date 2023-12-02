@@ -22,9 +22,9 @@ std::map<unsigned int, ProcessInfo> MainWindow::getProcesses()
     //                      {
     //                          return a.id > b.id;
     //                      });
-//    std::vector<ProcessInfo> result;
-//    for(auto elem : processes)
-//        result.push_back(elem.second);
+    //    std::vector<ProcessInfo> result;
+    //    for(auto elem : processes)
+    //        result.push_back(elem.second);
     return processes;
 }
 
@@ -71,51 +71,28 @@ void MainWindow::setupUi()
                 auto processesStateWatcher = new QFutureWatcher<std::map<unsigned int, ProcessInfo>>();
                 currentProcessesResultFuture = QtConcurrent::run(&MainWindow::getProcesses, this);
                 //qDebug() << "processesStateWatcher connected";
-                connect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, this,
-                        [=]
+                std::unique_ptr<QObject> context{new QObject};
+                QObject* pcontext = context.get();
+                connect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished,
+                        pcontext, [=, this, context = std::move(context)]() mutable
                         {
                             try
                             {
-                                auto data = processesStateWatcher->result();
-                                model->load(data);
-                                auto header = treeView->header();
-                                header->setSectionResizeMode(0, QHeaderView::Stretch);
-                                //model->addItem(new TreeItem(500, QString::fromStdWString(std::format(L"{}_{:%F %T}", L"Pr1_", std::chrono::system_clock::now())), 123, 456), QModelIndex());
-                                //treeView->setModel(model);
-                                // model->addItem(new TreeItem(500, "500", 123, 456), QModelIndex());
-                                //    auto isv = model->_persistentIndices[10].isValid();
-                                //    for (const auto& pair: model->getPersistentIndices())
-                                //    {
-                                //        auto isValid = pair.isValid();
-                                //        if (isValid)
-                                //        {
-                                //            treeView->setExpanded(pair, true);
-                                //        }
-                                //    }
-                                //    treeView->setUpdatesEnabled(true);
-                                disconnect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, this, &MainWindow::FinishedFormat);
-                                //qDebug() << "processesStateWatcher disconnected";
+                                OnProcessInfoReceived(processesStateWatcher);
+                                context.release();
                             }
                             catch(ProcessServiceException& exc)
                             {
-                                disconnect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, this, &MainWindow::FinishedFormat);
-                                //qDebug() << "exception thrown while receiving list of processes";
-                                //qDebug() << "processesStateWatcher diconnected";
+                                context.release();
+                                qDebug() << "exception thrown while receiving list of processes";
+                                qDebug() << "processesStateWatcher diconnected";
                             }
                         });
                 connect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::deleteLater);
                 processesStateWatcher->setFuture(currentProcessesResultFuture);
             });
 
-    connect(pushButton, &QPushButton::clicked, [this](bool checked = false)
-            {
-                //qDebug() << "clicked";
-                //model->addItem(new TreeItem(500, QString::fromStdWString(std::format(L"{}_{:%F %T}", L"Pr1_", std::chrono::system_clock::now())), 123, 456), QModelIndex());
-                    //model->setName(1, QString("sdf"));
-            });
     _processInfoTimer->start(1000);
-
-
 } // setupUi
 
 void MainWindow::retranslateUi()
@@ -129,35 +106,11 @@ MainWindow::~MainWindow()
 
 }
 
-void MainWindow::FinishedFormat()
+void MainWindow::OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher)
 {
-    try
-    {
-//        auto data = processesStateWatcher->result();
-//        model->load(data);
-//        auto header = treeView->header();
-//        header->setSectionResizeMode(0, QHeaderView::Stretch);
-        //model->addItem(new TreeItem(500, QString::fromStdWString(std::format(L"{}_{:%F %T}", L"Pr1_", std::chrono::system_clock::now())), 123, 456), QModelIndex());
-        //treeView->setModel(model);
-        // model->addItem(new TreeItem(500, "500", 123, 456), QModelIndex());
-        //    auto isv = model->_persistentIndices[10].isValid();
-        //    for (const auto& pair: model->getPersistentIndices())
-        //    {
-        //        auto isValid = pair.isValid();
-        //        if (isValid)
-        //        {
-        //            treeView->setExpanded(pair, true);
-        //        }
-        //    }
-        //    treeView->setUpdatesEnabled(true);
-        //disconnect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, this, &MainWindow::FinishedFormat);
-        //qDebug() << "processesStateWatcher disconnected";
-    }
-    catch(ProcessServiceException& exc)
-    {
-        //disconnect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, this, &MainWindow::FinishedFormat);
-        //qDebug() << "exception thrown while receiving list of processes";
-        //qDebug() << "processesStateWatcher diconnected";
-    }
+    auto data = processesStateWatcher->result();
+    model->load(data);
+    auto header = treeView->header();
+    header->setSectionResizeMode(0, QHeaderView::Stretch);
 }
 

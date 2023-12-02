@@ -5,64 +5,72 @@
 #include <iomanip>
 #include <iostream>
 #include <ranges>
-#include "../WinApiLib/process.h"
+#include "../WinApiLib/winprocessservice.h"
 #include <algorithm>
 
 void printProcesses(const ProcessInfo& pi, bool recursively = false, int level = 0)
 {
-    std::wcout
-        << std::setw(level)
-        << std::right
-        << L"-"
-        << std::left
-        << std::setw(6) << pi.id << " "
-        << std::setfill(L'.')
-        << std::setw(50 + level) << pi.name
-        << std::setfill(L' ');
-    std::wcout
-        << std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.WorkingSetSize)
-        << std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.PageFileUsage)
-        << std::setw(16) << (!pi.processIs32Bit? "64bit":"32bit")
-        << std::endl;
+	std::wcout
+		<< std::setw(level)
+		<< std::right
+		<< L"-"
+		<< std::left
+		<< std::setw(6) << pi.id << " "
+		<< std::setfill(L'.')
+		<< std::setw(50 + level) << pi.name
+		<< std::setfill(L' ');
+	std::wcout
+		<< std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.WorkingSetSize)
+		<< std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.WorkingSetSize)
+		<< std::setw(16) << std::format(L"{} K", pi.extendedInfo.memoryInfo.PageFileUsage)
+		<< std::setw(16) << pi.perfData.frequency100Ns
+		<< std::setw(16) << pi.perfData.percentProcessorTime
+		<< std::endl;
 
-    /*if (recursively)
-    {
-        for (const auto& child : pi.childProcesses)
-        {
-            printProcesses(child, recursively, level + 2);
-        }
-    }*/
+	/*if (recursively)
+	{
+		for (const auto& child : pi.childProcesses)
+		{
+			printProcesses(child, recursively, level + 2);
+		}
+	}*/
 }
 
 int main()
 {
-    WA::Process pr;
+	while (true)
+	{
+		WA::WinProcessService pr;
 
-    while (true)
-    {
-        const auto processes = pr.getProcessTreeByCom();
-        auto range{ processes | std::views::values };
-        std::vector sortedProcesses(range.begin(), range.end());
-        std::ranges::sort(sortedProcesses,
-            [](const auto& a, const auto& b)
-            {
-                return a.extendedInfo.memoryInfo.WorkingSetSize > b.extendedInfo.memoryInfo.WorkingSetSize;
-            });
-    }
-    std::wcout
-		<< std::left
-        << std::setw(6) << "PID" << " "
-        << std::setw(50) << "Process"
-        << std::setw(16) << "Working Set"
-        << std::setw(16) << "Private bytes"
-        << std::setw(16) << "Is 64bit"
-        << std::endl;
 
-    std::wcout << std::setfill(L'-') << std::setw(100) << "-" << std::endl;
-    /*for (const auto& process : sortedProcesses)
-    {
-        printProcesses(process, true);
-    }*/
+		const auto processes = pr.getProcessTreeByCom();
+		auto range{ processes | std::views::values };
+		std::vector sortedProcesses(range.begin(), range.end());
+		std::ranges::sort(sortedProcesses,
+			[](const auto& a, const auto& b)
+			{
+				return a.extendedInfo.memoryInfo.WorkingSetSize > b.extendedInfo.memoryInfo.WorkingSetSize;
+			});
+
+		/*std::wcout
+			<< std::left
+			<< std::setw(6) << "PID" << " "
+			<< std::setw(50) << "Process"
+			<< std::setw(50) << "CPU"
+			<< std::setw(16) << "Working Set"
+			<< std::setw(16) << "Private bytes"
+			<< std::setw(16) << "Freq"
+			<< std::setw(16) << "Percentage"
+			<< std::endl;*/
+
+		//std::wcout << std::setfill(L'-') << std::setw(100) << "-" << std::endl;
+
+		for (const auto& process : sortedProcesses)
+		{
+			if (process.name == L"ProcessViewer.exe")
+				printProcesses(process, true);
+		}
+	}
 }
 
 // Run program: Ctrl + F5 or Debug > Start Without Debugging menu

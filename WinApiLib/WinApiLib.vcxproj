@@ -145,15 +145,20 @@
     <ClInclude Include="dllexport.h" />
     <ClInclude Include="erroroutput.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="iwinprocessservice.h" />
     <ClInclude Include="mulfactor.h" />
-    <ClInclude Include="process.h" />
+    <ClInclude Include="perfrawdata.h" />
+    <ClInclude Include="winprocessservice.h" />
     <ClInclude Include="processinfo.h" />
+    <ClInclude Include="systeminfo.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="comhelper.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="erroroutput.cpp" />
-    <ClCompile Include="process.cpp" />
+    <ClCompile Include="perfrawdata.cpp" />
+    <ClCompile Include="winprocessservice.cpp" />
+    <ClCompile Include="systeminfo.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

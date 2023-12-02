@@ -46,7 +46,6 @@ int TreeItem::getRow() const
 TreeItem* TreeItem::getChildById(SIZE_T id)
 {
     auto childIt = std::find_if(m_children.begin(), m_children.end(), [=](TreeItem* someclass) { return someclass->getId() == id; });
-    //qDebug() <<  this->m_id << (childIt !=  m_childrenHashTable.end() ? "has":"does not have") << " children with id" << id;
     return childIt != m_children.end() ? *childIt : nullptr;
 }
 

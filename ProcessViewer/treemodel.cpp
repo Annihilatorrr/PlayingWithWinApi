@@ -1,23 +1,9 @@
 #include <map>
+#include <QLocale>
 #include "treemodel.h"
 #include "treeitem.h"
 #include "processinfo.h"
 
-
-
-void TreeModel::fillRec(ProcessInfo& data, TreeItem* parent)
-{
-    //    for (auto& child : data.childProcesses)
-    //    {
-    //        QList<QVariant> columnData;
-    //        columnData << QString::fromStdWString(child.name);
-    //        columnData << child.extendedInfo.memoryInfo.WorkingSetSize;
-    //        columnData << child.extendedInfo.memoryInfo.PageFileUsage;
-    //        auto childItem = new TreeItem(columnData, parent);
-    //        parent->addChild(childItem);
-    //        fillRec(child, childItem);
-    //    }
-}
 TreeModel::TreeModel(QObject *parent): QAbstractItemModel(parent)
 {
     QList<QVariant> rootData;
@@ -25,7 +11,7 @@ TreeModel::TreeModel(QObject *parent): QAbstractItemModel(parent)
     {
         rootData << propName;
     }
-    rootItem = new TreeItem(rootData);
+    m_rootItem = new TreeItem(rootData);
 }
 
 void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
@@ -37,6 +23,12 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
         if (existintgTreeItemIt == itemsTree.end())
         {
             itemsTree[pi.id] = new TreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
+            itemsTree[pi.id]->setDescription(QString::fromStdWString(pi.description));
+            itemsTree[pi.id]->setExecutablePath(QString::fromStdWString(pi.executablePath));
+            double cpuUsage = (1 - ((pi.perfData.percentProcessorTime - itemsTree[pi.id]->getPercentage()) / (pi.perfData.frequency100Ns - itemsTree[pi.id]->getFrequency()))) * 100;
+            itemsTree[pi.id]->setCpuUsage(cpuUsage);
+            itemsTree[pi.id]->setPercentage(pi.perfData.percentProcessorTime);
+            itemsTree[pi.id]->setFrequency(pi.perfData.frequency100Ns);
             qDebug() << "added new process" <<  processId << itemsTree[processId]->getName();
         }
         else
@@ -44,6 +36,17 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             existintgTreeItemIt->second->setName(QString::fromStdWString(pi.name));
             existintgTreeItemIt->second->setWorkingSetSize(pi.extendedInfo.memoryInfo.WorkingSetSize);
             existintgTreeItemIt->second->setPageFileUsage(pi.extendedInfo.memoryInfo.PageFileUsage);
+
+            auto time = pi.perfData.frequency100Ns - existintgTreeItemIt->second->getFrequency();
+            if (time != 0)
+            {
+                auto cpu = pi.perfData.percentProcessorTime - existintgTreeItemIt->second->getPercentage();
+                qDebug() << "time <-> cpu:" << time << cpu;
+                int cpuUsage = std::round(( (double(cpu) / time)) * 100/m_processorCount);
+                existintgTreeItemIt->second->setCpuUsage(cpuUsage);
+            }
+            existintgTreeItemIt->second->setPercentage(pi.perfData.percentProcessorTime);
+            existintgTreeItemIt->second->setFrequency(pi.perfData.frequency100Ns);
         }
     }
 
@@ -70,10 +73,10 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             else // non is non existing process
             {
                 //qDebug() << "Parent process not found for process" << processId;
-                TreeItem* existintgChild = rootItem->getChildById(processId);
+                TreeItem* existintgChild = m_rootItem->getChildById(processId);
                 if (!existintgChild)
                 {
-                    rootItem->addChild(itemsTree[processId]);
+                    m_rootItem->addChild(itemsTree[processId]);
                     addItem(itemsTree[processId], QModelIndex());
                 }
                 updateRow(processId);
@@ -81,10 +84,10 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
         }
         else
         {
-            TreeItem* existintgChild = rootItem->getChildById(processId);
+            TreeItem* existintgChild = m_rootItem->getChildById(processId);
             if (!existintgChild)
             {
-                rootItem->addChild(itemsTree[processId]);
+                m_rootItem->addChild(itemsTree[processId]);
                 //addItem(itemsTree[processId], QModelIndex());
             }
             updateRow(processId);
@@ -97,7 +100,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
     {
         if (!processInfoRecords.contains(itemsTreeIt->second->getId()))
         {
-            qDebug() << "ProcCess"  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
+            qDebug() << "Proccess"  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
             qDebug() << "(";
             for(const auto& childId: itemsTreeIt->second->getIdsWithChildren())
             {
@@ -141,7 +144,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
 
 TreeModel::~TreeModel()
 {
-    delete rootItem;
+    delete m_rootItem;
 }
 
 int TreeModel::columnCount(const QModelIndex &parent) const
@@ -157,24 +160,46 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    if (role != Qt::DisplayRole)
+    if (role == Qt::ToolTipRole)
+    {
+        TreeItem *item = getItemByIndex(index);
+
+        QLocale aEnglish;
+        switch((Properties)index.column())
+        {
+        case Properties::ProcessName:
+            return item->getName();
+        case Properties::ExecutablePath:
+            return item->getExecutablePath();
+        default:
+            return {};
+        }
+    }
+    if ((role != Qt::DisplayRole))
     {
         return QVariant();
     }
-
     TreeItem *item = getItemByIndex(index);
 
-    //qDebug() << "Getting Data: " << item->data(index.column()) << " at index" << index.column();
-    switch(index.column())
+    QLocale aEnglish;
+    switch((Properties)index.column())
     {
-    case 0:
+    case Properties::ProcessName:
         return item->getName();
-    case 1:
+    case Properties::PID:
         return item->getId();
-    case 2:
-        return item->getPageFileUsage();
-    case 3:
-        return item->getMorkingSetSize();
+    case Properties::PrivateBytes:
+    {
+        return QString("%L1 K").arg(item->getPageFileUsage());
+    }
+    case Properties::WorkingSet:
+    {
+        return QString("%L1 K").arg(item->getMorkingSetSize());
+    }
+    case Properties::ExecutablePath:
+        return item->getExecutablePath();
+    case Properties::CpuUsage:
+        return item->getCpuUsage();
     default:
         return {};
     }
@@ -233,11 +258,11 @@ bool TreeModel::removeItem(SIZE_T processId)
         return true;
     }
 
-    // if direct parent is not visible (or hasn't been made visible so far), just change internal structure
+    // if direct parent is not visible (or hasn't been made visible so far) or rootItem (it doesn't have persistent index created), just change internal structure
     // without informing the view
     int row = item->getRow();
     auto parent = item->getParent();
-    if (parent == rootItem)
+    if (parent == m_rootItem)
     {
         beginRemoveRows(QModelIndex(), row, row);
         parent->removeChild(row);
@@ -245,7 +270,7 @@ bool TreeModel::removeItem(SIZE_T processId)
     }
     else
     {
-        item->getParent()->removeChild(row);
+        parent->removeChild(row);
     }
     _persistentIndices.erase(processId);
     return true;
@@ -255,7 +280,6 @@ void TreeModel::addItem(TreeItem* item, const QModelIndex& parentIndex)
 {
     beginInsertRows(parentIndex, rowCount(parentIndex), rowCount(parentIndex));
     endInsertRows();
-    //qDebug() << "endInsertRows";
 }
 bool TreeModel::updateRow(SIZE_T processId)
 {
@@ -274,7 +298,7 @@ bool TreeModel::updateRow(SIZE_T processId)
     if (TreeItem *item = getItemByIndex(idx))
     {
         QModelIndex fromIndex = index(idx.row(), 0, idx.parent());
-        QModelIndex toIndex = index(idx.row(), 3, idx.parent());
+        QModelIndex toIndex = index(idx.row(), static_cast<int>(Properties::END) - 1, idx.parent());
 
         emit dataChanged(fromIndex, toIndex);
         //qDebug() <<"Data changed emitted";
@@ -302,7 +326,6 @@ QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) con
                 _persistentIndices.insert({childItem->getId(), persistentIndex});
                 qDebug() << "Creating persistent index for ID = " << childItem->getId() << childItem->getName() ;
             }
-            //qDebug() << "Creating index for row = " << row << " column = " << column;
             return index;
         }
         else
@@ -320,15 +343,14 @@ QModelIndex TreeModel::parent(const QModelIndex &index) const
         return QModelIndex();
     }
 
-    //qDebug() << "Asking parent for row" << index.row() << "column" << index.column();
     TreeItem *childItem = getItemByIndex(index);
-    if (childItem == rootItem)
+    if (childItem == m_rootItem)
     {
         return QModelIndex();
     }
     TreeItem *parentItem = childItem->getParent();
 
-    if (parentItem == nullptr || parentItem == rootItem)
+    if (parentItem == nullptr || parentItem == m_rootItem)
     {
         return QModelIndex();
     }
@@ -345,5 +367,5 @@ int TreeModel::rowCount(const QModelIndex &parent) const
 
 TreeItem* TreeModel::getItemByIndex(const QModelIndex &index) const
 {
-    return (index.isValid()) ? static_cast<TreeItem*>(index.internalPointer()) : rootItem;
+    return (index.isValid()) ? static_cast<TreeItem*>(index.internalPointer()) : m_rootItem;
 }
