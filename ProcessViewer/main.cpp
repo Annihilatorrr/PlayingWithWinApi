@@ -5,6 +5,8 @@
 #include <QTranslator>
 #include "processservice.h"
 #include "fakeprocessservice.h"
+#include "iwinprocessservice.h"
+#include "winprocessservice.h"
 
 int main(int argc, char *argv[])
 {
@@ -20,7 +22,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    MainWindow w(ProcessService{});
+    WA::IWinProcessService* processService = new WA::WinProcessService();
+    MainWindow w(processService);
     //MainWindow w(FakeProcessService{});
     w.show();
 try {

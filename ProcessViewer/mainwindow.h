@@ -17,9 +17,10 @@ class MainWindow : public QMainWindow
 
     QFuture<std::map<unsigned int, ProcessInfo>> currentProcessesResultFuture;
     QTimer* _processInfoTimer;
-    const IProcessService& _processService;
+    WA::IWinProcessService* _processService;
+    QMenu* m_contextMenu;
 public:
-    MainWindow(const IProcessService& processService, QWidget *parent = nullptr);
+    MainWindow(WA::IWinProcessService* processService, QWidget *parent = nullptr);
     std::map<unsigned int, ProcessInfo> getProcesses();
     QWidget *centralwidget;
     QPushButton *pushButton;
@@ -30,8 +31,9 @@ public:
     void setupUi();
     void retranslateUi();
     ~MainWindow();
+    void onProcessTreeContextMenu(const QPoint &point);
     void OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher);
-
+    void uninstallAppletClickedSlot();
 private:
 public slots:
 };

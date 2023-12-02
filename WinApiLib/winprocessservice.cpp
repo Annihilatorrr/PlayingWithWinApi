@@ -78,10 +78,6 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 		auto pt = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"PercentProcessorTime"));
 		perfData.percentProcessorTime = std::stoull(pt);
 		data[perfData.processId] = perfData;
-		if (name == L"ProcessViewer")
-		{
-			std::cout << perfData.frequency100Ns << " " << perfData.percentProcessorTime << std::endl;
-		}
 
 	}
 	return data;
@@ -369,4 +365,11 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom()
 	pLocator->Release();
 	CoUninitialize();
 	return processTree;
+}
+
+void WA::WinProcessService::kill(unsigned processId)
+{
+	const auto explorer = OpenProcess(PROCESS_TERMINATE, false, processId);
+	TerminateProcess(explorer, 1);
+	CloseHandle(explorer);
 }

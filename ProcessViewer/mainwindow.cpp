@@ -6,7 +6,7 @@
 #include <QHeaderView>
 #include <process.h>
 #include <ranges>
-MainWindow::MainWindow(const IProcessService& processService, QWidget *parent)
+MainWindow::MainWindow(WA::IWinProcessService* processService, QWidget *parent)
     : QMainWindow(parent), _processService(processService)
 {
     setupUi();
@@ -14,7 +14,7 @@ MainWindow::MainWindow(const IProcessService& processService, QWidget *parent)
 
 std::map<unsigned int, ProcessInfo> MainWindow::getProcesses()
 {
-    std::map<unsigned int, ProcessInfo> processes = _processService.getProcessTreeByCom();
+    std::map<unsigned int, ProcessInfo> processes = _processService->getProcessTreeByCom();
     //    auto range{ *processes | std::views::values };
     //    std::vector sortedProcesses(range.begin(), range.end());
     //    std::ranges::sort(sortedProcesses,
@@ -39,16 +39,19 @@ void MainWindow::setupUi()
     pushButton = new QPushButton();
     pushButton->setObjectName("pushButton");
 
-
-
-    model = new TreeModel(this);
     treeView = new QTreeView();
-
+    model = new TreeModel(this);
+    m_contextMenu = new QMenu(treeView);
+    auto killProcessAction = new QAction("Kill process", m_contextMenu);
+    connect(killProcessAction, &QAction::triggered, this, &MainWindow::uninstallAppletClickedSlot);
+    m_contextMenu->addAction(killProcessAction);
     //(static_cast<QWidget*>(treeView->header()))->hide();
     treeView->setModel(model);
+    treeView->setContextMenuPolicy(Qt::CustomContextMenu);
     treeView->header()->resizeSection(0, 100);
     treeView->header()->resizeSection(1, 100);
     treeView->header()->resizeSection(2, 100);
+    treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     layout->addWidget(treeView);
     layout->addWidget(pushButton);
     setCentralWidget(centralwidget);
@@ -66,11 +69,11 @@ void MainWindow::setupUi()
 
     _processInfoTimer = new QTimer;
     _processInfoTimer->setSingleShot(false);
+    connect(treeView, &QTreeView::customContextMenuRequested, this, &MainWindow::onProcessTreeContextMenu);
     connect(_processInfoTimer,&QTimer::timeout,this,[this]()
             {
                 auto processesStateWatcher = new QFutureWatcher<std::map<unsigned int, ProcessInfo>>();
                 currentProcessesResultFuture = QtConcurrent::run(&MainWindow::getProcesses, this);
-                //qDebug() << "processesStateWatcher connected";
                 std::unique_ptr<QObject> context{new QObject};
                 QObject* pcontext = context.get();
                 connect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished,
@@ -94,6 +97,30 @@ void MainWindow::setupUi()
 
     _processInfoTimer->start(1000);
 } // setupUi
+
+void MainWindow::uninstallAppletClickedSlot()
+{
+    auto indexes = treeView->selectionModel()->selectedIndexes();
+    for (const auto& index: indexes)
+    {
+        if (index.column() == 0)
+        {
+            auto item = model->getItemByIndex(index);
+            qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();
+
+            _processService->kill(item->getId());
+        }
+    }
+}
+
+void MainWindow::onProcessTreeContextMenu(const QPoint &point)
+{
+    QModelIndex index = treeView->indexAt(point);
+    if (index.isValid()) {
+        auto coords = treeView->viewport()->mapToGlobal(point);
+        m_contextMenu->exec(coords);
+    }
+}
 
 void MainWindow::retranslateUi()
 {

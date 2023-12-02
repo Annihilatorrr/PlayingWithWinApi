@@ -41,7 +41,6 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             if (time != 0)
             {
                 auto cpu = pi.perfData.percentProcessorTime - existintgTreeItemIt->second->getPercentage();
-                qDebug() << "time <-> cpu:" << time << cpu;
                 int cpuUsage = std::round(( (double(cpu) / time)) * 100/m_processorCount);
                 existintgTreeItemIt->second->setCpuUsage(cpuUsage);
             }
@@ -53,7 +52,6 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
     // set parents for all existing items
     for (auto& [processId, pi] : processInfoRecords)
     {
-        //qDebug() << "Found " << processId << "(" << pi.name << ")" << " with parent " << pi.parentProcessId;
         if (processId != 0)
         {
             if (auto foundParent = itemsTree.find(pi.parentProcessId); foundParent != itemsTree.end())
@@ -107,7 +105,6 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
                 try
                 {
                     outdatedItemsIds.insert({childId, itemsTree.at(childId)});
-                    qDebug() << childId;
                 }
                 catch (std::out_of_range& exc)
                 {

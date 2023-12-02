@@ -32,6 +32,7 @@ namespace WA {
 		
 		std::map<DWORD, ProcessInfo> getProcessTreeBySnapshot() const;
 		std::map<unsigned int, ProcessInfo> getProcessTreeByCom();
+		void kill(unsigned int processId);
 
 	};
 }

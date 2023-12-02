@@ -2,15 +2,26 @@
 #define PROCESSSERVICE_H
 
 #include "iprocessservice.h"
-#include "winprocessservice.h"
+
+#include "iwinprocessservice.h"
 class ProcessService: public IProcessService
 {
+    WA::IWinProcessService* m_processService;
 public:
-    std::map<unsigned int, ProcessInfo> getProcessTreeByCom() const
+
+    ProcessService(WA::IWinProcessService* processService):m_processService(processService)
     {
-        WA::WinProcessService pr;
-        std::map<unsigned int, ProcessInfo> processes = pr.getProcessTreeByCom();
+
+    }
+    std::map<unsigned int, ProcessInfo> getProcessTreeByCom() const
+    {   
+        std::map<unsigned int, ProcessInfo> processes = m_processService->getProcessTreeByCom();
         return processes;
+    }
+
+    void kill(unsigned int processId)
+    {
+        m_processService->kill(processId);
     }
 };
 
