@@ -41,7 +41,8 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             if (time != 0)
             {
                 auto cpu = pi.perfData.percentProcessorTime - existintgTreeItemIt->second->getPercentage();
-                int cpuUsage = std::round(( (double(cpu) / time)) * 100/m_processorCount);
+                double ratioPerCpuInPercents{double(cpu) / time/m_processorCount*100};
+                double cpuUsage{std::roundf( ratioPerCpuInPercents*100)/100.0};
                 existintgTreeItemIt->second->setCpuUsage(cpuUsage);
             }
             existintgTreeItemIt->second->setPercentage(pi.perfData.percentProcessorTime);
@@ -98,7 +99,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
     {
         if (!processInfoRecords.contains(itemsTreeIt->second->getId()))
         {
-            qDebug() << "Proccess"  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
+            qDebug() << tr("Proccess")  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
             qDebug() << "(";
             for(const auto& childId: itemsTreeIt->second->getIdsWithChildren())
             {
@@ -196,7 +197,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
     case Properties::ExecutablePath:
         return item->getExecutablePath();
     case Properties::CpuUsage:
-        return item->getCpuUsage();
+        return QString("%L1 %").arg(item->getCpuUsage());
     default:
         return {};
     }

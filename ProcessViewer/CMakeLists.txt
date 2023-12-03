@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-
+set(CMAKE_VERBOSE_MAKEFILE on)
 project(ProcessViewer VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_AUTOUIC ON)
@@ -12,7 +12,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
 
-set(TS_FILES ProcessViewer_ru_RU.ts)
+set(TS_FILES ProcessViewer_en_US.ts ProcessViewer_ru_RU.ts)
 
 set(PROJECT_SOURCES
         main.cpp
@@ -27,23 +27,57 @@ set(PROJECT_SOURCES
         processservice.h
         processservice.cpp
         #mainwindow.ui
-        ${TS_FILES}
+)
+
+set(LUPDATE_EXECUTABLE "c:/Qt/6.6.0/msvc2019_64/bin/lupdate.exe")
+set(LRELEASE_EXECUTABLE "c:/Qt/6.6.0/msvc2019_64/bin/lrelease.exe")
+
+add_custom_target(lupdate_target
+    COMMAND ${LUPDATE_EXECUTABLE} ${PROJECT_SOURCES} -ts ${TS_FILES}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running lupdate"
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
+    message("Creating executable")
     qt_add_executable(ProcessViewer
+        ${QM_FILES}
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         fakeprocessservice.h fakeprocessservice.cpp
         processserviceexception.h
-
+        processpropertiesdialog.h processpropertiesdialog.cpp
+        processproperties.h
+        imagetab.h imagetab.cpp
+        processviewer.qrc
     )
+    add_dependencies(ProcessViewer lupdate_target)
+
+    # Create custom target for lrelease
+    add_custom_target(lrelease_target
+        COMMAND ${LRELEASE_EXECUTABLE} ${TS_FILES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        COMMENT "Running lrelease"
+    )
+    message(PROJECT_SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+    add_dependencies(ProcessViewer lrelease_target)
 # Define target properties for Android with Qt 6 as:
 #    set_property(TARGET ProcessViewer APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR
 #                 ${CMAKE_CURRENT_SOURCE_DIR}/android)
 # For more information, see https://doc.qt.io/qt-6/qt-add-executable.html#target-creation
-
-    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
+    message("Updating translations files")
+#    add_custom_command(OUTPUT ProcessViewer_en_US.qm
+#                    COMMAND lupdate
+#                        -source-language en_US
+#                        -target-language en_US
+#                        ${PROJECT_SOURCES}
+#                        -ts ProcessViewer_en_US.ts
+#                    DEPENDS
+#                        ${PROJECT_SOURCES}
+#                    WORKING_DIRECTORY
+#                        ${CMAKE_CURRENT_SOURCE_DIR}
+#    )
+    qt_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES} OPTIONS -source-language en_US -no-obsolete)
 else()
     if(ANDROID)
         add_library(ProcessViewer SHARED
@@ -56,7 +90,7 @@ else()
             ${PROJECT_SOURCES}
         )
     endif()
-
+message("Updating translations files")
     qt5_create_translation(QM_FILES ${CMAKE_SOURCE_DIR} ${TS_FILES})
 endif()
 

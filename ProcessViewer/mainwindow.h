@@ -8,6 +8,7 @@
 #include <QFutureWatcher>
 #include <QCoreApplication>
 #include <QtWidgets/QTreeView>
+#include <QtWidgets/QListView>
 #include "treemodel.h"
 #include "iprocessservice.h"
 
@@ -19,6 +20,8 @@ class MainWindow : public QMainWindow
     QTimer* _processInfoTimer;
     WA::IWinProcessService* _processService;
     QMenu* m_contextMenu;
+    QToolBar* m_topToolbar;
+    bool m_displayAsTree = true;
 public:
     MainWindow(WA::IWinProcessService* processService, QWidget *parent = nullptr);
     std::map<unsigned int, ProcessInfo> getProcesses();
@@ -26,14 +29,16 @@ public:
     QPushButton *pushButton;
     QMenuBar *menubar;
     QStatusBar *statusbar;
-    QTreeView* treeView;
-    TreeModel* model;
+    QTreeView* m_treeView;
+    QListView* m_listView;
+    TreeModel* m_treeViewModel;
     void setupUi();
     void retranslateUi();
     ~MainWindow();
     void onProcessTreeContextMenu(const QPoint &point);
     void OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher);
-    void uninstallAppletClickedSlot();
+    void killProcessMenuActionClicked();
+    void propertiesMenuActionClicked();
 private:
 public slots:
 };

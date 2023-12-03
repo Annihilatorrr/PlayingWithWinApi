@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="ru_RU">
+<TS version="2.1" language="en_US">
 <context>
     <name>MainWindow</name>
     <message>
@@ -16,7 +16,7 @@
     <message>
         <location filename="mainwindow.cpp" line="56"/>
         <source>MainWindow</source>
-        <translation type="unfinished">Обозреватель процессов</translation>
+        <translation type="unfinished">Process Explorer</translation>
     </message>
     <message>
         <location filename="mainwindow.cpp" line="62"/>
@@ -26,7 +26,7 @@
     <message>
         <location filename="mainwindow.cpp" line="70"/>
         <source>Properties...</source>
-        <translation type="unfinished">Свойства...</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -34,7 +34,7 @@
     <message>
         <location filename="treemodel.cpp" line="102"/>
         <source>Proccess</source>
-        <translation type="unfinished">Процесс</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

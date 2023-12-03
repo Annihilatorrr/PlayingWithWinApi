@@ -1,8 +1,10 @@
 #include "mainwindow.h"
 #include "treeitem.h"
 #include "processserviceexception.h"
+#include "processpropertiesdialog.h"
 #include <QLayout>
 #include <QtConcurrent/QtConcurrent>
+#include <QToolbar>
 #include <QHeaderView>
 #include <process.h>
 #include <ranges>
@@ -30,29 +32,62 @@ std::map<unsigned int, ProcessInfo> MainWindow::getProcesses()
 
 void MainWindow::setupUi()
 {
-    if (objectName().isEmpty())
-        setObjectName("MainWindow");
+    m_topToolbar = new QToolBar();
+    m_topToolbar->setContextMenuPolicy(Qt::PreventContextMenu);
+    QAction* switchToListMode = new QAction();
+    connect(switchToListMode, &QAction::triggered, [this]()
+            {
+                m_displayAsTree = false;
+                m_treeView->setVisible(m_displayAsTree);
+                m_listView->setVisible(!m_displayAsTree);
+            });
+    switchToListMode->setToolTip(QCoreApplication::translate("MainWindow", "List mode", nullptr));
+    QAction* switchToTreeMode = new QAction();
+    connect(switchToTreeMode, &QAction::triggered, [this]()
+            {
+                m_displayAsTree = true;
+                m_treeView->setVisible(m_displayAsTree);
+                m_listView->setVisible(!m_displayAsTree);
+            });
+    switchToTreeMode->setToolTip(QCoreApplication::translate("MainWindow", "Tree mode", nullptr));
+    m_topToolbar->addAction(switchToListMode);
+    m_topToolbar->addAction(switchToTreeMode);
+    addToolBar(m_topToolbar);
+    setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
     resize(800, 600);
     centralwidget = new QWidget(this);
     centralwidget->setObjectName("centralwidget");
     QVBoxLayout* layout = new QVBoxLayout(centralwidget);
     pushButton = new QPushButton();
-    pushButton->setObjectName("pushButton");
+    pushButton->setText(QCoreApplication::translate("MainWindow", "clickme", nullptr));
+    m_treeView = new QTreeView();
+    m_treeViewModel = new TreeModel(this);
 
-    treeView = new QTreeView();
-    model = new TreeModel(this);
-    m_contextMenu = new QMenu(treeView);
+    m_listView = new QListView();
+
+    m_contextMenu = new QMenu(m_treeView);
     auto killProcessAction = new QAction("Kill process", m_contextMenu);
-    connect(killProcessAction, &QAction::triggered, this, &MainWindow::uninstallAppletClickedSlot);
+    auto propertiesAction = new QAction(tr("Properties..."), m_contextMenu);
+    connect(killProcessAction, &QAction::triggered, this, &MainWindow::killProcessMenuActionClicked);
+    connect(propertiesAction, &QAction::triggered, this, &MainWindow::propertiesMenuActionClicked);
+
     m_contextMenu->addAction(killProcessAction);
+    m_contextMenu->addAction(propertiesAction);
+
     //(static_cast<QWidget*>(treeView->header()))->hide();
-    treeView->setModel(model);
-    treeView->setContextMenuPolicy(Qt::CustomContextMenu);
-    treeView->header()->resizeSection(0, 100);
-    treeView->header()->resizeSection(1, 100);
-    treeView->header()->resizeSection(2, 100);
-    treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    layout->addWidget(treeView);
+    m_treeView->setModel(m_treeViewModel);
+    m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    auto header = m_treeView->header();
+    header->resizeSection(0, 100);
+    header->resizeSection(1, 100);
+    header->resizeSection(2, 100);
+    header->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    layout->addWidget(m_treeView);
+    layout->addWidget(m_listView);
+    m_treeView->setVisible(m_displayAsTree);
+    m_listView->setVisible(!m_displayAsTree);
     layout->addWidget(pushButton);
     setCentralWidget(centralwidget);
     menubar = new QMenuBar(this);
@@ -69,7 +104,7 @@ void MainWindow::setupUi()
 
     _processInfoTimer = new QTimer;
     _processInfoTimer->setSingleShot(false);
-    connect(treeView, &QTreeView::customContextMenuRequested, this, &MainWindow::onProcessTreeContextMenu);
+    connect(m_treeView, &QTreeView::customContextMenuRequested, this, &MainWindow::onProcessTreeContextMenu);
     connect(_processInfoTimer,&QTimer::timeout,this,[this]()
             {
                 auto processesStateWatcher = new QFutureWatcher<std::map<unsigned int, ProcessInfo>>();
@@ -98,14 +133,32 @@ void MainWindow::setupUi()
     _processInfoTimer->start(1000);
 } // setupUi
 
-void MainWindow::uninstallAppletClickedSlot()
+void MainWindow::propertiesMenuActionClicked()
 {
-    auto indexes = treeView->selectionModel()->selectedIndexes();
+    auto indexes = m_treeView->selectionModel()->selectedIndexes();
     for (const auto& index: indexes)
     {
         if (index.column() == 0)
         {
-            auto item = model->getItemByIndex(index);
+            auto item = m_treeViewModel->getItemByIndex(index);
+            ProcessProperties model;
+            model.processId = item->getId();
+            model.processName = item->getName();
+
+            ProcessPropertiesDialog* otherWidget = new ProcessPropertiesDialog(model, this);
+            QObject::connect(this, &QMainWindow::destroyed, otherWidget, &QWidget::deleteLater);
+            otherWidget->show();
+        }
+    }
+}
+void MainWindow::killProcessMenuActionClicked()
+{
+    auto indexes = m_treeView->selectionModel()->selectedIndexes();
+    for (const auto& index: indexes)
+    {
+        if (index.column() == 0)
+        {
+            auto item = m_treeViewModel->getItemByIndex(index);
             qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();
 
             _processService->kill(item->getId());
@@ -115,17 +168,16 @@ void MainWindow::uninstallAppletClickedSlot()
 
 void MainWindow::onProcessTreeContextMenu(const QPoint &point)
 {
-    QModelIndex index = treeView->indexAt(point);
+    QModelIndex index = m_treeView->indexAt(point);
     if (index.isValid()) {
-        auto coords = treeView->viewport()->mapToGlobal(point);
+        auto coords = m_treeView->viewport()->mapToGlobal(point);
         m_contextMenu->exec(coords);
     }
 }
 
 void MainWindow::retranslateUi()
 {
-    setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
-    pushButton->setText(QCoreApplication::translate("MainWindow", "PushButton", nullptr));
+
 } // retranslateUi
 
 MainWindow::~MainWindow()
@@ -136,8 +188,10 @@ MainWindow::~MainWindow()
 void MainWindow::OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher)
 {
     auto data = processesStateWatcher->result();
-    model->load(data);
-    auto header = treeView->header();
-    header->setSectionResizeMode(0, QHeaderView::Stretch);
+
+    if (m_displayAsTree)
+    {
+        m_treeViewModel->load(data);
+    }
 }
 
