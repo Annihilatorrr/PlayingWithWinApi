@@ -8,6 +8,7 @@ namespace WA {
 	class DLLEXPORT IWinProcessService
 	{
 	public:
+		IWinProcessService() = default;
 		virtual ~IWinProcessService() = default;
 		virtual std::map<DWORD, ProcessInfo> getProcessTreeBySnapshot() const = 0;
 		virtual std::map<unsigned int, ProcessInfo> getProcessTreeByCom() = 0;

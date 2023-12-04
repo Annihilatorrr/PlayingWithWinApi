@@ -3,3 +3,6 @@ x64/
 ProcessViewer/Debug/
 *.filters
 *.user
+ProcessViewer/Release/
+ProcessViewer/CMakeFiles/
+ProcessViewer/CMakeCache.txt

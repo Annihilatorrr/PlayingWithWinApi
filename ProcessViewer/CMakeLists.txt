@@ -5,7 +5,7 @@ project(ProcessViewer VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-
+set(BUILDMODE Debug)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -26,12 +26,16 @@ set(PROJECT_SOURCES
         #iprocessservice.cpp
         processservice.h
         processservice.cpp
+        #${TS_FILES}
         #mainwindow.ui
 )
 
-set(LUPDATE_EXECUTABLE "c:/Qt/6.6.0/msvc2019_64/bin/lupdate.exe")
-set(LRELEASE_EXECUTABLE "c:/Qt/6.6.0/msvc2019_64/bin/lrelease.exe")
-
+set(LUPDATE_EXECUTABLE "${CMAKE_PREFIX_PATH}/bin/lupdate.exe")
+set(LRELEASE_EXECUTABLE "${CMAKE_PREFIX_PATH}/bin/lrelease.exe")
+message(LRELEASE_EXECUTABLE = ${LUPDATE_EXECUTABLE})
+message(LUPDATE_EXECUTABLE = ${LUPDATE_EXECUTABLE})
+message(CMAKE_SOURCE_DIR = ${CMAKE_SOURCE_DIR})
+message(Running ${LUPDATE_EXECUTABLE})
 add_custom_target(lupdate_target
     COMMAND ${LUPDATE_EXECUTABLE} ${PROJECT_SOURCES} -ts ${TS_FILES}
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -52,8 +56,8 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         processviewer.qrc
     )
     add_dependencies(ProcessViewer lupdate_target)
-
     # Create custom target for lrelease
+    message(Running ${LRELEASE_EXECUTABLE})
     add_custom_target(lrelease_target
         COMMAND ${LRELEASE_EXECUTABLE} ${TS_FILES}
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
@@ -96,16 +100,15 @@ endif()
 
 
 include_directories(d:/projects/PlayingWithWinApi/WinApiLib)
-#link_directories(d:/projects/PlayingWithWinApi/x64/Debug)
 
 #add_library(wbemuuid.lib SHARED IMPORTED)
 #add_library(Wtsapi32.lib SHARED IMPORTED)
-add_library (WinApiLib SHARED IMPORTED)
-set_target_properties(WinApiLib PROPERTIES
-  IMPORTED_LOCATION "../WinApiLib/WinApiLib.lib"
-  INTERFACE_INCLUDE_DIRECTORIES "../WinApiLib"
-)
-target_link_libraries(ProcessViewer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets "d:/projects/PlayingWithWinApi/x64/debug/WinApiLib.lib")
+#add_library (WinApiLib SHARED IMPORTED)
+#set_target_properties(WinApiLib PROPERTIES
+#  IMPORTED_LOCATION "../WinApiLib/x64/release/WinApiLib.lib"
+#  INTERFACE_INCLUDE_DIRECTORIES "../WinApiLib"
+#)
+target_link_libraries(ProcessViewer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets "d:\\projects\\PlayingWithWinApi\\x64\\${BUILDMODE}\\WinApiLib.lib")
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an

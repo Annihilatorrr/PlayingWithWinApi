@@ -4,37 +4,42 @@
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="mainwindow.cpp" line="44"/>
+        <location filename="mainwindow.cpp" line="45"/>
         <source>List mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="52"/>
+        <location filename="mainwindow.cpp" line="53"/>
         <source>Tree mode</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="56"/>
+        <location filename="mainwindow.cpp" line="57"/>
         <source>MainWindow</source>
-        <translation type="unfinished">Обозреватель процессов</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="62"/>
+        <location filename="mainwindow.cpp" line="63"/>
         <source>clickme</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="mainwindow.cpp" line="70"/>
+        <source>Kill process</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="mainwindow.cpp" line="71"/>
         <source>Properties...</source>
-        <translation type="unfinished">Свойства...</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
     <name>TreeModel</name>
     <message>
-        <location filename="treemodel.cpp" line="102"/>
+        <location filename="treemodel.cpp" line="99"/>
         <source>Proccess</source>
-        <translation type="unfinished">Процесс</translation>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 </TS>

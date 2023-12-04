@@ -25,11 +25,8 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             itemsTree[pi.id] = new TreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
             itemsTree[pi.id]->setDescription(QString::fromStdWString(pi.description));
             itemsTree[pi.id]->setExecutablePath(QString::fromStdWString(pi.executablePath));
-            double cpuUsage = (1 - ((pi.perfData.percentProcessorTime - itemsTree[pi.id]->getPercentage()) / (pi.perfData.frequency100Ns - itemsTree[pi.id]->getFrequency()))) * 100;
-            itemsTree[pi.id]->setCpuUsage(cpuUsage);
             itemsTree[pi.id]->setPercentage(pi.perfData.percentProcessorTime);
             itemsTree[pi.id]->setFrequency(pi.perfData.frequency100Ns);
-            qDebug() << "added new process" <<  processId << itemsTree[processId]->getName();
         }
         else
         {

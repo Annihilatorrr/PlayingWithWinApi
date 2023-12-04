@@ -29,7 +29,9 @@ namespace WA {
 		std::map<unsigned int, PerfRawData> getProcessUsageInfo(IWbemServices* pServices);
 
 	public:
-		
+
+		WinProcessService(){};
+		~WinProcessService(){};
 		std::map<DWORD, ProcessInfo> getProcessTreeBySnapshot() const;
 		std::map<unsigned int, ProcessInfo> getProcessTreeByCom();
 		void kill(unsigned int processId);

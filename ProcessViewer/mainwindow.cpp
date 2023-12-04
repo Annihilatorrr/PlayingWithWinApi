@@ -17,6 +17,7 @@ MainWindow::MainWindow(WA::IWinProcessService* processService, QWidget *parent)
 std::map<unsigned int, ProcessInfo> MainWindow::getProcesses()
 {
     std::map<unsigned int, ProcessInfo> processes = _processService->getProcessTreeByCom();
+
     //    auto range{ *processes | std::views::values };
     //    std::vector sortedProcesses(range.begin(), range.end());
     //    std::ranges::sort(sortedProcesses,
@@ -66,8 +67,8 @@ void MainWindow::setupUi()
     m_listView = new QListView();
 
     m_contextMenu = new QMenu(m_treeView);
-    auto killProcessAction = new QAction("Kill process", m_contextMenu);
-    auto propertiesAction = new QAction(tr("Properties..."), m_contextMenu);
+    auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
+    auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
     connect(killProcessAction, &QAction::triggered, this, &MainWindow::killProcessMenuActionClicked);
     connect(propertiesAction, &QAction::triggered, this, &MainWindow::propertiesMenuActionClicked);
 
