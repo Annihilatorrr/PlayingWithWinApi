@@ -119,14 +119,11 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
     for (auto& [id, processItem]: outdatedItemsIds)
     {
         qDebug() << "\t Erasing of" << id << processItem->getName();
-        auto recordRemoved = removeItem(id);
-        qDebug() << "Record removed" << recordRemoved;
-        if (recordRemoved)
-        {
-            itemsTree.erase(id);
-            processItem->setReadyToDelete();
-        }
-        //processItem->clearChildren();
+        removeItem(id);
+        qDebug() << "Record removed";
+        itemsTree.erase(id);
+        _persistentIndices.erase(id);
+        processItem->setReadyToDelete();
     }
     for (const auto& [id, processItem]: outdatedItemsIds)
     {
@@ -209,7 +206,7 @@ Qt::ItemFlags ProcessTreeModel::flags(const QModelIndex &index) const
 }
 
 QVariant ProcessTreeModel::headerData(int section, Qt::Orientation orientation,
-                               int role) const
+                                      int role) const
 {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
         return PropertiesNames.at((ProcessTreeModel::Properties)section);
@@ -218,7 +215,7 @@ QVariant ProcessTreeModel::headerData(int section, Qt::Orientation orientation,
 }
 
 bool ProcessTreeModel::setData(const QModelIndex &index,
-                        const QVariant &value, int role)
+                               const QVariant &value, int role)
 {
     if (!index.isValid() || index.column() != 1)
         return false;
@@ -231,7 +228,7 @@ bool ProcessTreeModel::setData(const QModelIndex &index,
     return false;
 }
 
-bool ProcessTreeModel::removeItem(SIZE_T processId)
+void ProcessTreeModel::removeItem(SIZE_T processId)
 {
     QModelIndex parentIndex;
 
@@ -243,18 +240,18 @@ bool ProcessTreeModel::removeItem(SIZE_T processId)
     // and inform the view about it
     if (parentIndexIt != _persistentIndices.end())
     {
-        int row = item->getRow();
+        int firstRow = item->getRow();
+        int lastRow = item->getRow();
         parentIndex = parentIndexIt->second;
-        qDebug() << "Removing by parent, row" << row;
-        beginRemoveRows(parentIndex, row, row);
-        getItemByIndex(parentIndex)->removeChild(row);
+        qDebug() << "Removing by parent, row" << firstRow;
+        beginRemoveRows(parentIndex, firstRow, lastRow);
+        getItemByIndex(parentIndex)->removeChild(firstRow);
         endRemoveRows();
-        _persistentIndices.erase(processId);
-        return true;
+        return;
     }
 
-    // if direct parent is not visible (or hasn't been made visible so far) or rootItem (it doesn't have persistent index created), just change internal structure
-    // without informing the view
+    // if direct parent is not visible (or hasn't been made visible so far) or
+    // direct parent is rootItem (it doesn't have persistent index created)
     int row = item->getRow();
     auto parent = item->getParent();
     if (parent == m_rootItem)
@@ -263,12 +260,11 @@ bool ProcessTreeModel::removeItem(SIZE_T processId)
         parent->removeChild(row);
         endRemoveRows();
     }
-    else
+    else // direct parent is not visible and not a tootItem
+    // just change internal structure without informing the view
     {
         parent->removeChild(row);
     }
-    _persistentIndices.erase(processId);
-    return true;
 }
 
 void ProcessTreeModel::addItem(ProcessTreeItem* item, const QModelIndex& parentIndex)

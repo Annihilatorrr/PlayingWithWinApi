@@ -58,7 +58,7 @@ public:
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 
     void addItem(ProcessTreeItem* item, const QModelIndex& parentIndex);
-    bool removeItem(SIZE_T processId);
+    void removeItem(SIZE_T processId);
     bool updateRow(size_t id);
 
 private:
