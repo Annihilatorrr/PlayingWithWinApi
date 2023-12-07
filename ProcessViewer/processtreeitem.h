@@ -3,14 +3,14 @@
 
 #include <QStandardItem>
 #include <Windows.h>
-class TreeItem
+class ProcessTreeItem
 {
     unsigned int m_id;
     QString m_name;
     SIZE_T m_workingSetSize;
     SIZE_T m_pageFileUsage;
-    TreeItem* m_parent;
-    QList<TreeItem*> m_children;
+    ProcessTreeItem* m_parent;
+    QList<ProcessTreeItem*> m_children;
     QList<QVariant> m_itemData;
     QString m_description;
     bool m_isReadyToDelete;
@@ -18,10 +18,11 @@ class TreeItem
     quint64 m_frequency;
     quint64 m_percentage;
     double m_cpuUsage;
+
 public:
-    explicit TreeItem(unsigned int id, const QString &name, SIZE_T workingSetSize, SIZE_T pageFileUsage, TreeItem *parent = nullptr);
-    explicit TreeItem(const QList<QVariant> &data, TreeItem *parent = 0);
-    ~TreeItem();
+    explicit ProcessTreeItem(unsigned int id, const QString &name, SIZE_T workingSetSize, SIZE_T pageFileUsage, ProcessTreeItem *parent = nullptr);
+    explicit ProcessTreeItem(const QList<QVariant> &data, ProcessTreeItem *parent = 0);
+    ~ProcessTreeItem();
 
     unsigned int getId() const { return m_id; }
 
@@ -74,21 +75,21 @@ public:
         }
         return ids;
     }
-    void setProperty(std::function<void(TreeItem&)> setter){setter(*this);}
-    TreeItem *getParent() const { return m_parent; }
-    void setParent(TreeItem* parent) { m_parent = parent; }
+    void setProperty(std::function<void(ProcessTreeItem&)> setter){setter(*this);}
+    ProcessTreeItem *getParent() const { return m_parent; }
+    void setParent(ProcessTreeItem* parent) { m_parent = parent; }
 
-    TreeItem *getChildAt(int row) const { return m_children.value(row); }
-    TreeItem* getChildById(SIZE_T id);
-    int getRowOfChild(TreeItem *child) const { return m_children.indexOf(child); }
+    ProcessTreeItem *getChildAt(int row) const { return m_children.value(row); }
+    ProcessTreeItem* getChildById(SIZE_T id);
+    int getRowOfChild(ProcessTreeItem *child) const { return m_children.indexOf(child); }
     int getChildCount() const { return m_children.count(); }
     bool hasChildren() const { return !m_children.isEmpty(); }
-    QList<TreeItem*> getChildren() const { return m_children; }
+    QList<ProcessTreeItem*> getChildren() const { return m_children; }
 
-    void addChild(TreeItem *item);
-    void insertChild(int row, TreeItem *item) { item->m_parent = this; m_children.insert(row, item); }
+    void addChild(ProcessTreeItem *item);
+    void insertChild(int row, ProcessTreeItem *item) { item->m_parent = this; m_children.insert(row, item); }
     void swapChildren(int oldRow, int newRow) { m_children.swapItemsAt(oldRow, newRow); }
-    TreeItem* removeChild(int row);
+    ProcessTreeItem* removeChild(int row);
     bool removeChildById(SIZE_T id);
     void clearChildren();
 

@@ -18,10 +18,10 @@ set(PROJECT_SOURCES
         main.cpp
         mainwindow.cpp
         mainwindow.h
-        treemodel.h
-        treemodel.cpp
-        treeitem.h
-        treeitem.cpp
+        processtreemodel.h
+        processtreemodel.cpp
+        processtreeitem.h
+        processtreeitem.cpp
         iprocessservice.h
         #iprocessservice.cpp
         processservice.h
@@ -54,6 +54,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         processproperties.h
         imagetab.h imagetab.cpp
         processviewer.qrc
+        processtablemodel.h processtablemodel.cpp
     )
     add_dependencies(ProcessViewer lupdate_target)
     # Create custom target for lrelease

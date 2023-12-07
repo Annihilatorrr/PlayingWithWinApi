@@ -1,20 +1,20 @@
 #include <map>
 #include <QLocale>
-#include "treemodel.h"
-#include "treeitem.h"
+#include "processtreemodel.h"
+#include "processtreeitem.h"
 #include "processinfo.h"
 
-TreeModel::TreeModel(QObject *parent): QAbstractItemModel(parent)
+ProcessTreeModel::ProcessTreeModel(QObject *parent): QAbstractItemModel(parent)
 {
     QList<QVariant> rootData;
     for(const auto& [key, propName]:PropertiesNames)
     {
         rootData << propName;
     }
-    m_rootItem = new TreeItem(rootData);
+    m_rootItem = new ProcessTreeItem(rootData);
 }
 
-void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
+void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
 {
     //Create tree of processes. Item are being added or updated if already exist. Parents are not set here.
     for (auto& [processId, pi] : processInfoRecords)
@@ -22,7 +22,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
         auto existintgTreeItemIt = itemsTree.find(processId);
         if (existintgTreeItemIt == itemsTree.end())
         {
-            itemsTree[pi.id] = new TreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
+            itemsTree[pi.id] = new ProcessTreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
             itemsTree[pi.id]->setDescription(QString::fromStdWString(pi.description));
             itemsTree[pi.id]->setExecutablePath(QString::fromStdWString(pi.executablePath));
             itemsTree[pi.id]->setPercentage(pi.perfData.percentProcessorTime);
@@ -54,7 +54,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
         {
             if (auto foundParent = itemsTree.find(pi.parentProcessId); foundParent != itemsTree.end())
             {
-                TreeItem* existintgChild = foundParent->second->getChildById(processId);
+                ProcessTreeItem* existintgChild = foundParent->second->getChildById(processId);
                 if (!existintgChild)
                 {
                     foundParent->second->addChild(itemsTree[processId]);
@@ -69,7 +69,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
             else // non is non existing process
             {
                 //qDebug() << "Parent process not found for process" << processId;
-                TreeItem* existintgChild = m_rootItem->getChildById(processId);
+                ProcessTreeItem* existintgChild = m_rootItem->getChildById(processId);
                 if (!existintgChild)
                 {
                     m_rootItem->addChild(itemsTree[processId]);
@@ -80,7 +80,7 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
         }
         else
         {
-            TreeItem* existintgChild = m_rootItem->getChildById(processId);
+            ProcessTreeItem* existintgChild = m_rootItem->getChildById(processId);
             if (!existintgChild)
             {
                 m_rootItem->addChild(itemsTree[processId]);
@@ -91,14 +91,14 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
     }
 
     auto itemsTreeIt = itemsTree.begin();
-    std::map<SIZE_T, TreeItem*> outdatedItemsIds;
+    std::map<SIZE_T, ProcessTreeItem*> outdatedItemsIds;
     while(itemsTreeIt != itemsTree.end())
     {
         if (!processInfoRecords.contains(itemsTreeIt->second->getId()))
         {
             qDebug() << tr("Proccess")  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
             qDebug() << "(";
-            for(const auto& childId: itemsTreeIt->second->getIdsWithChildren())
+            for(auto&& childId: itemsTreeIt->second->getIdsWithChildren())
             {
                 try
                 {
@@ -137,18 +137,18 @@ void TreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
     }
 }
 
-TreeModel::~TreeModel()
+ProcessTreeModel::~ProcessTreeModel()
 {
     delete m_rootItem;
 }
 
-int TreeModel::columnCount(const QModelIndex &parent) const
+int ProcessTreeModel::columnCount(const QModelIndex &parent) const
 {
-    return static_cast<int>(TreeModel::Properties::END);
+    return static_cast<int>(ProcessTreeModel::Properties::END);
 }
 
 
-QVariant TreeModel::data(const QModelIndex &index, int role) const
+QVariant ProcessTreeModel::data(const QModelIndex &index, int role) const
 {
     if (!index.isValid())
     {
@@ -157,7 +157,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
 
     if (role == Qt::ToolTipRole)
     {
-        TreeItem *item = getItemByIndex(index);
+        ProcessTreeItem *item = getItemByIndex(index);
 
         QLocale aEnglish;
         switch((Properties)index.column())
@@ -174,7 +174,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
     {
         return QVariant();
     }
-    TreeItem *item = getItemByIndex(index);
+    ProcessTreeItem *item = getItemByIndex(index);
 
     QLocale aEnglish;
     switch((Properties)index.column())
@@ -200,7 +200,7 @@ QVariant TreeModel::data(const QModelIndex &index, int role) const
     }
 }
 
-Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
+Qt::ItemFlags ProcessTreeModel::flags(const QModelIndex &index) const
 {
     if (!index.isValid())
         return Qt::ItemIsEnabled;
@@ -208,34 +208,34 @@ Qt::ItemFlags TreeModel::flags(const QModelIndex &index) const
     return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
 }
 
-QVariant TreeModel::headerData(int section, Qt::Orientation orientation,
+QVariant ProcessTreeModel::headerData(int section, Qt::Orientation orientation,
                                int role) const
 {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
-        return PropertiesNames.at((TreeModel::Properties)section);
+        return PropertiesNames.at((ProcessTreeModel::Properties)section);
 
     return QVariant();
 }
 
-bool TreeModel::setData(const QModelIndex &index,
+bool ProcessTreeModel::setData(const QModelIndex &index,
                         const QVariant &value, int role)
 {
     if (!index.isValid() || index.column() != 1)
         return false;
-    if (TreeItem *item = getItemByIndex(index))
+    if (ProcessTreeItem *item = getItemByIndex(index))
     {
-        item->setProperty([&](TreeItem& treeItem){treeItem.setName(value.toString());});
+        item->setProperty([&](ProcessTreeItem& treeItem){treeItem.setName(value.toString());});
         emit dataChanged(index, index);
         return true;
     }
     return false;
 }
 
-bool TreeModel::removeItem(SIZE_T processId)
+bool ProcessTreeModel::removeItem(SIZE_T processId)
 {
     QModelIndex parentIndex;
 
-    TreeItem* item = itemsTree.at(processId);
+    ProcessTreeItem* item = itemsTree.at(processId);
     auto parentId = item->getParent()->getId();
     auto parentIndexIt = _persistentIndices.find(parentId);
 
@@ -271,12 +271,12 @@ bool TreeModel::removeItem(SIZE_T processId)
     return true;
 }
 
-void TreeModel::addItem(TreeItem* item, const QModelIndex& parentIndex)
+void ProcessTreeModel::addItem(ProcessTreeItem* item, const QModelIndex& parentIndex)
 {
     beginInsertRows(parentIndex, rowCount(parentIndex), rowCount(parentIndex));
     endInsertRows();
 }
-bool TreeModel::updateRow(SIZE_T processId)
+bool ProcessTreeModel::updateRow(SIZE_T processId)
 {
     auto indexIt = _persistentIndices.find(processId);
     if(indexIt == _persistentIndices.end() || !indexIt->second.isValid())
@@ -290,26 +290,25 @@ bool TreeModel::updateRow(SIZE_T processId)
     {
         return false;
     }
-    if (TreeItem *item = getItemByIndex(idx))
+    if (ProcessTreeItem *item = getItemByIndex(idx))
     {
         QModelIndex fromIndex = index(idx.row(), 0, idx.parent());
         QModelIndex toIndex = index(idx.row(), static_cast<int>(Properties::END) - 1, idx.parent());
 
         emit dataChanged(fromIndex, toIndex);
-        //qDebug() <<"Data changed emitted";
         return true;
     }
     return false;
 }
 
-QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) const
+QModelIndex ProcessTreeModel::index(int row, int column, const QModelIndex &parent) const
 {
-    TreeItem *parentItem = getItemByIndex(parent);
+    ProcessTreeItem *parentItem = getItemByIndex(parent);
 
     //qDebug() << "Creating index for row = " << row << " column = " << column << "at parent = " << parentItem->getId();
     if (row < parentItem->getChildCount())
     {
-        TreeItem *childItem = parentItem->getChildAt(row);
+        ProcessTreeItem *childItem = parentItem->getChildAt(row);
         //qDebug() << "Creating index for row = " << row << " column = " << column;
         if (childItem)
         {
@@ -331,19 +330,19 @@ QModelIndex TreeModel::index(int row, int column, const QModelIndex &parent) con
     return QModelIndex();
 }
 
-QModelIndex TreeModel::parent(const QModelIndex &index) const
+QModelIndex ProcessTreeModel::parent(const QModelIndex &index) const
 {
     if (!index.isValid())
     {
         return QModelIndex();
     }
 
-    TreeItem *childItem = getItemByIndex(index);
+    ProcessTreeItem *childItem = getItemByIndex(index);
     if (childItem == m_rootItem)
     {
         return QModelIndex();
     }
-    TreeItem *parentItem = childItem->getParent();
+    ProcessTreeItem *parentItem = childItem->getParent();
 
     if (parentItem == nullptr || parentItem == m_rootItem)
     {
@@ -354,13 +353,13 @@ QModelIndex TreeModel::parent(const QModelIndex &index) const
     return createIndex(parentItem->getRow(), 0, parentItem);
 }
 
-int TreeModel::rowCount(const QModelIndex &parent) const
+int ProcessTreeModel::rowCount(const QModelIndex &parent) const
 {
-    TreeItem *parentItem = getItemByIndex(parent);
+    ProcessTreeItem *parentItem = getItemByIndex(parent);
     return parentItem->getChildCount();
 }
 
-TreeItem* TreeModel::getItemByIndex(const QModelIndex &index) const
+ProcessTreeItem* ProcessTreeModel::getItemByIndex(const QModelIndex &index) const
 {
-    return (index.isValid()) ? static_cast<TreeItem*>(index.internalPointer()) : m_rootItem;
+    return (index.isValid()) ? static_cast<ProcessTreeItem*>(index.internalPointer()) : m_rootItem;
 }

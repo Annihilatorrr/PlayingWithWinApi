@@ -6,6 +6,7 @@
 #include <iostream>
 #include <ranges>
 #include "../WinApiLib/winprocessservice.h"
+#include "../WinApiLib/cimhelper.h"
 #include <algorithm>
 
 void printProcesses(const ProcessInfo& pi, bool recursively = false, int level = 0)
@@ -38,6 +39,7 @@ void printProcesses(const ProcessInfo& pi, bool recursively = false, int level =
 
 int main()
 {
+	auto properties = CimHelper::getWbemProperties(L"SELECT * FROM Win32_PerfRawData_PerfProc_Process");
 	while (true)
 	{
 		WA::WinProcessService pr;
@@ -67,7 +69,7 @@ int main()
 
 		for (const auto& process : sortedProcesses)
 		{
-			if (process.name == L"ProcessViewer.exe")
+			//if (process.name == L"ProcessViewer.exe")
 				printProcesses(process, true);
 		}
 	}

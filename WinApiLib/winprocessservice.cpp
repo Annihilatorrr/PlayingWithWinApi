@@ -11,7 +11,7 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 {
 	IEnumWbemClassObject* pEnumerator = nullptr;
 	std::map<unsigned int, PerfRawData> data;
-	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PerfRawData_PerfProc_Process"),
+	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT Name, Caption, IDProcess, Timestamp_Sys100NS, PercentProcessorTime FROM Win32_PerfRawData_PerfProc_Process"),
 		WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
 	if (FAILED(hr))
 	{
@@ -22,7 +22,6 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 	ULONG uReturn = 0;
 
 	std::map<unsigned int, ProcessInfo> processMap;
-	std::set<std::wstring> propertiesNames;
 
 	while (pEnumerator)
 	{
@@ -38,36 +37,9 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 			WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY,
 			nullptr,
 			&psaNames);
-		if (propertiesNames.empty())
-		{
-			VARIANT* raw;
-			HRESULT hr = SafeArrayAccessData(psaNames, reinterpret_cast<void**>(&raw)); // direct access to SA memory
-			if (SUCCEEDED(hr))
-			{
-				long lLower, lUpper;
-				SafeArrayGetLBound(psaNames, 1, &lLower);
-				SafeArrayGetUBound(psaNames, 1, &lUpper);
-
-				long elementCnt = lUpper - lLower + 1;
-				for (LONG i = 0; i < elementCnt; ++i)  // iterate through returned values
-				{
-					_bstr_t		str;
-					wchar_t* pwszPropName = nullptr;
-					SafeArrayGetElement(psaNames, &i, &pwszPropName);
-					propertiesNames.insert(pwszPropName);
-				}
-			}
-
-			hr = ::SafeArrayUnaccessData(psaNames);
-		}
 		SafeArrayDestroy(psaNames);
 
 		const auto name = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
-		//std::wcout << "--- Process " << name << std::endl;
-		//for (auto& pn : propertiesNames)
-		//{
-		//	std::wcout << '\t' << pn << L":" << ComHelper::readVariant<BSTR>(pclsObj, pn) << std::endl;
-		//}
 
 		const auto caption = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Caption"));
 
@@ -327,13 +299,13 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom()
 {
 	CoInitialize(nullptr);
 	IWbemLocator* pLocator = nullptr;
-	IWbemServices* pServices = nullptr;
 
 	HRESULT hr = CoCreateInstance(CLSID_WbemLocator, nullptr, CLSCTX_INPROC_SERVER, IID_IWbemLocator, reinterpret_cast<LPVOID*>(&pLocator));
 
 	if (SUCCEEDED(hr))
 	{
 		// The WMI namespace root/cimv2 is the default namespace and contains classes for computer hardware and configuration.
+		IWbemServices* pServices = nullptr;
 		hr = pLocator->ConnectServer(_bstr_t(L"ROOT\\CIMV2"), nullptr, nullptr, nullptr, NULL, nullptr, nullptr, &pServices);
 		if (FAILED(hr))
 		{
@@ -358,13 +330,14 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom()
 			CoUninitialize();
 			return {};
 		}
+		auto processTree = getProcessTreeByCom(pServices);
+		pServices->Release();
+		pLocator->Release();
+		return processTree;
 	}
 
-	auto processTree = getProcessTreeByCom(pServices);
-	pServices->Release();
-	pLocator->Release();
 	CoUninitialize();
-	return processTree;
+	return {};
 }
 
 void WA::WinProcessService::kill(unsigned processId)

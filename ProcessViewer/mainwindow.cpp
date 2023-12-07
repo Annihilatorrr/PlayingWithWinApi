@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "treeitem.h"
+#include "processtreeitem.h"
 #include "processserviceexception.h"
 #include "processpropertiesdialog.h"
 #include <QLayout>
@@ -40,7 +40,7 @@ void MainWindow::setupUi()
             {
                 m_displayAsTree = false;
                 m_treeView->setVisible(m_displayAsTree);
-                m_listView->setVisible(!m_displayAsTree);
+                m_tableView->setVisible(!m_displayAsTree);
             });
     switchToListMode->setToolTip(QCoreApplication::translate("MainWindow", "List mode", nullptr));
     QAction* switchToTreeMode = new QAction();
@@ -48,7 +48,7 @@ void MainWindow::setupUi()
             {
                 m_displayAsTree = true;
                 m_treeView->setVisible(m_displayAsTree);
-                m_listView->setVisible(!m_displayAsTree);
+                m_tableView->setVisible(!m_displayAsTree);
             });
     switchToTreeMode->setToolTip(QCoreApplication::translate("MainWindow", "Tree mode", nullptr));
     m_topToolbar->addAction(switchToListMode);
@@ -62,10 +62,10 @@ void MainWindow::setupUi()
     pushButton = new QPushButton();
     pushButton->setText(QCoreApplication::translate("MainWindow", "clickme", nullptr));
     m_treeView = new QTreeView();
-    m_treeViewModel = new TreeModel(this);
+    m_treeViewModel = new ProcessTreeModel(this);
 
-    m_listView = new QListView();
-
+    m_tableView = new QTableView();
+    m_tableViewModel = new ProcessTableModel(this);
     m_contextMenu = new QMenu(m_treeView);
     auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
     auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
@@ -79,6 +79,7 @@ void MainWindow::setupUi()
     m_treeView->setModel(m_treeViewModel);
     m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
 
+     m_tableView->setModel(m_tableViewModel);
     auto header = m_treeView->header();
     header->resizeSection(0, 100);
     header->resizeSection(1, 100);
@@ -86,9 +87,9 @@ void MainWindow::setupUi()
     header->setSectionResizeMode(0, QHeaderView::Stretch);
     m_treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     layout->addWidget(m_treeView);
-    layout->addWidget(m_listView);
+    layout->addWidget(m_tableView);
     m_treeView->setVisible(m_displayAsTree);
-    m_listView->setVisible(!m_displayAsTree);
+    m_tableView->setVisible(!m_displayAsTree);
     layout->addWidget(pushButton);
     setCentralWidget(centralwidget);
     menubar = new QMenuBar(this);
@@ -193,6 +194,10 @@ void MainWindow::OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, Pro
     if (m_displayAsTree)
     {
         m_treeViewModel->load(data);
+    }
+    else
+    {
+        m_tableViewModel->load(data);
     }
 }
 

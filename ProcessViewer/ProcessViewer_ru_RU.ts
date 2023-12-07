@@ -35,9 +35,9 @@
     </message>
 </context>
 <context>
-    <name>TreeModel</name>
+    <name>ProcessTreeModel</name>
     <message>
-        <location filename="treemodel.cpp" line="99"/>
+        <location filename="processtreemodel.cpp" line="99"/>
         <source>Proccess</source>
         <translation type="unfinished"></translation>
     </message>

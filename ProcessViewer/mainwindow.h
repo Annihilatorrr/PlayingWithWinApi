@@ -8,8 +8,9 @@
 #include <QFutureWatcher>
 #include <QCoreApplication>
 #include <QtWidgets/QTreeView>
-#include <QtWidgets/QListView>
-#include "treemodel.h"
+#include <QtWidgets/QTableView>
+#include "processtreemodel.h"
+#include "processtablemodel.h"
 #include "iprocessservice.h"
 
 class MainWindow : public QMainWindow
@@ -30,8 +31,10 @@ public:
     QMenuBar *menubar;
     QStatusBar *statusbar;
     QTreeView* m_treeView;
-    QListView* m_listView;
-    TreeModel* m_treeViewModel;
+    QTableView* m_tableView;
+    ProcessTreeModel* m_treeViewModel;
+    ProcessTableModel* m_tableViewModel;
+
     void setupUi();
     void retranslateUi();
     ~MainWindow();

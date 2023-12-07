@@ -1,18 +1,18 @@
-#ifndef TREEMODEL_H
-#define TREEMODEL_H
+#ifndef PROCESSTREEMODEL_H
+#define PROCESSTREEMODEL_H
 
 #include <QStandardItemModel>
 
 #include <process.h>
 #include <vector>
 #include "processinfo.h"
-class TreeItem;
+class ProcessTreeItem;
 
-class TreeModel : public QAbstractItemModel
+class ProcessTreeModel : public QAbstractItemModel
 {
-    Q_OBJECT
+   // Q_OBJECT
 
-    std::map<unsigned int, TreeItem*> itemsTree;
+    std::map<unsigned int, ProcessTreeItem*> itemsTree;
     unsigned int m_processorCount = std::thread::hardware_concurrency();
 public:
 
@@ -29,20 +29,20 @@ public:
         END
     };
 
-    std::map<TreeModel::Properties, QString> PropertiesNames
+    std::map<ProcessTreeModel::Properties, QString> PropertiesNames
         {
-         {TreeModel::Properties::ProcessName, "ProcessName"},
-         {TreeModel::Properties::PID, "PID"},
-         {TreeModel::Properties::PrivateBytes, "Private Bytes"},
-         {TreeModel::Properties::WorkingSet, "Working Set"},
-         {TreeModel::Properties::ExecutablePath, "ExecutablePath"},
-         {TreeModel::Properties::CpuUsage, "Cpu Usage"},
+        {ProcessTreeModel::Properties::ProcessName, "ProcessName"},
+        {ProcessTreeModel::Properties::PID, "PID"},
+        {ProcessTreeModel::Properties::PrivateBytes, "Private Bytes"},
+        {ProcessTreeModel::Properties::WorkingSet, "Working Set"},
+        {ProcessTreeModel::Properties::ExecutablePath, "ExecutablePath"},
+        {ProcessTreeModel::Properties::CpuUsage, "Cpu Usage"},
          };
 
-    TreeModel(QObject *parent = 0);
+    ProcessTreeModel(QObject *parent = 0);
     mutable std::map<size_t, QPersistentModelIndex> _persistentIndices;
     void load(std::map<unsigned int, ProcessInfo> &data);
-    ~TreeModel();
+    ~ProcessTreeModel();
     std::map<size_t, QPersistentModelIndex> getPersistentIndices()
     {
         return _persistentIndices;
@@ -54,16 +54,16 @@ public:
     QModelIndex parent(const QModelIndex &index) const override;
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     int columnCount(const QModelIndex &parent = QModelIndex()) const override;
-    TreeItem* getItemByIndex(const QModelIndex &index) const;
+    ProcessTreeItem* getItemByIndex(const QModelIndex &index) const;
     bool setData(const QModelIndex &index, const QVariant &value, int role) override;
 
-    void addItem(TreeItem* item, const QModelIndex& parentIndex);
+    void addItem(ProcessTreeItem* item, const QModelIndex& parentIndex);
     bool removeItem(SIZE_T processId);
     bool updateRow(size_t id);
 
 private:
-    void setupModelData(const QStringList &lines, TreeItem *parent);
-    TreeItem *m_rootItem;
+    void setupModelData(const QStringList &lines, ProcessTreeItem *parent);
+    ProcessTreeItem *m_rootItem;
 };
 
-#endif // TREEMODEL_H
+#endif // PROCESSTREEMODEL_H

@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cimhelper.h" />
     <ClInclude Include="comhelper.h" />
     <ClInclude Include="dllexport.h" />
     <ClInclude Include="erroroutput.h" />
@@ -155,6 +156,7 @@
     <ClInclude Include="systeminfo.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="cimhelper.cpp" />
     <ClCompile Include="comhelper.cpp" />
     <ClCompile Include="dllmain.cpp" />
     <ClCompile Include="erroroutput.cpp" />
