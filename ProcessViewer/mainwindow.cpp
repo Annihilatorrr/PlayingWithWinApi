@@ -65,7 +65,12 @@ void MainWindow::setupUi()
     m_treeViewModel = new ProcessTreeModel(this);
 
     m_tableView = new QTableView();
+    m_tableView->setWordWrap(false);
     m_tableViewModel = new ProcessTableModel(this);
+    QHeaderView *verticalHeader = m_tableView->verticalHeader();
+    verticalHeader->setSectionResizeMode(QHeaderView::Fixed);
+    verticalHeader->setDefaultSectionSize(24);
+
     m_contextMenu = new QMenu(m_treeView);
     auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
     auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);

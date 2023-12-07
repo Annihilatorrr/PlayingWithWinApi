@@ -24,12 +24,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="70"/>
+        <location filename="mainwindow.cpp" line="75"/>
         <source>Kill process</source>
         <translation type="unfinished">Kill process</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="71"/>
+        <location filename="mainwindow.cpp" line="76"/>
         <source>Properties...</source>
         <translation type="unfinished">Properties...</translation>
     </message>
