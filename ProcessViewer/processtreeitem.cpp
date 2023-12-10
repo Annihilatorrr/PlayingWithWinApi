@@ -48,6 +48,17 @@ ProcessTreeItem* ProcessTreeItem::getChildById(SIZE_T id)
     auto childIt = std::find_if(m_children.begin(), m_children.end(), [=](ProcessTreeItem* someclass) { return someclass->getId() == id; });
     return childIt != m_children.end() ? *childIt : nullptr;
 }
+bool ProcessTreeItem::contains(SIZE_T id)
+{
+    for(const auto& child:m_children)
+    {
+        if (child->getId() == id)
+        {
+            return true;
+        }
+    }
+    return false;
+}
 
 bool ProcessTreeItem::removeChildById(SIZE_T id)
 {

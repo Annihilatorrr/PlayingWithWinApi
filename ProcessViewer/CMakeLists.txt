@@ -56,6 +56,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         processviewer.qrc
         processtablemodel.h processtablemodel.cpp
         processtreeviewitemdelegate.h processtreeviewitemdelegate.cpp
+        processfiltermodel.h processfiltermodel.cpp
     )
     add_dependencies(ProcessViewer lupdate_target)
     # Create custom target for lrelease

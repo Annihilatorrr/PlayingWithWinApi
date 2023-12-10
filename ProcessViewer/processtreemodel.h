@@ -12,7 +12,7 @@ class ProcessTreeModel : public QAbstractItemModel
 {
    // Q_OBJECT
 
-    std::map<unsigned int, ProcessTreeItem*> itemsTree;
+    std::unordered_map<unsigned int, ProcessTreeItem*> itemsTree;
     unsigned int m_processorCount = std::thread::hardware_concurrency();
 public:
 
@@ -40,10 +40,10 @@ public:
          };
 
     ProcessTreeModel(QObject *parent = 0);
-    mutable std::map<size_t, QPersistentModelIndex> _persistentIndices;
+    mutable std::unordered_map<size_t, QPersistentModelIndex> _persistentIndices;
     void load(std::map<unsigned int, ProcessInfo> &data);
     ~ProcessTreeModel();
-    std::map<size_t, QPersistentModelIndex> getPersistentIndices()
+    std::unordered_map<size_t, QPersistentModelIndex> getPersistentIndices()
     {
         return _persistentIndices;
     }

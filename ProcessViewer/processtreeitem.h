@@ -81,6 +81,7 @@ public:
 
     ProcessTreeItem *getChildAt(int row) const { return m_children.value(row); }
     ProcessTreeItem* getChildById(SIZE_T id);
+    bool contains(SIZE_T id);
     int getRowOfChild(ProcessTreeItem *child) const { return m_children.indexOf(child); }
     int getChildCount() const { return m_children.count(); }
     bool hasChildren() const { return !m_children.isEmpty(); }

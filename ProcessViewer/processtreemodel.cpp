@@ -46,25 +46,31 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
             existintgTreeItemIt->second->setFrequency(pi.perfData.frequency100Ns);
         }
     }
-
+    emit layoutAboutToBeChanged();
     // set parents for all existing items
     for (auto& [processId, pi] : processInfoRecords)
     {
+        auto& childItem{itemsTree[processId]};
         if (processId != 0)
         {
             if (auto foundParent = itemsTree.find(pi.parentProcessId); foundParent != itemsTree.end())
             {
-                ProcessTreeItem* existintgChild = foundParent->second->getChildById(processId);
-                if (!existintgChild)
+                bool containsChild = foundParent->second->contains(processId);
+                if (!containsChild)
                 {
-                    foundParent->second->addChild(itemsTree[processId]);
+                    foundParent->second->addChild(childItem);
                     auto persistentParentIndexIt = _persistentIndices.find(pi.parentProcessId);
                     if (persistentParentIndexIt != _persistentIndices.end())
                     {
-                        addItem(itemsTree[processId], persistentParentIndexIt->second);
+                        qDebug() << "Persistent index exists for parent" << foundParent->second->getName() << "of" << itemsTree[processId]->getName();
+                        addItem(childItem, persistentParentIndexIt->second);
+                    }
+                    else
+                    {
+                        int r = 0;
+                        int e = 3;
                     }
                 }
-                updateRow(processId);
             }
             else // non is non existing process
             {
@@ -72,44 +78,38 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
                 ProcessTreeItem* existintgChild = m_rootItem->getChildById(processId);
                 if (!existintgChild)
                 {
-                    m_rootItem->addChild(itemsTree[processId]);
-                    addItem(itemsTree[processId], QModelIndex());
+                    m_rootItem->addChild(childItem);
+                    addItem (childItem, QModelIndex());
                 }
-                updateRow(processId);
             }
         }
         else
         {
-            ProcessTreeItem* existintgChild = m_rootItem->getChildById(processId);
-            if (!existintgChild)
+            bool containsChild = m_rootItem->contains(processId);
+            if (!containsChild)
             {
-                m_rootItem->addChild(itemsTree[processId]);
-                //addItem(itemsTree[processId], QModelIndex());
+                m_rootItem->addChild(childItem);
+                //addItem(m_rootItem, QModelIndex());
             }
-            updateRow(processId);
         }
+        //updateRow(processId);
     }
-
+    emit layoutChanged();
+    //updateRow(processId);
     auto itemsTreeIt = itemsTree.begin();
-    std::map<SIZE_T, ProcessTreeItem*> outdatedItemsIds;
+    std::unordered_map<SIZE_T, ProcessTreeItem*> outdatedItemsIds;
     while(itemsTreeIt != itemsTree.end())
     {
         if (!processInfoRecords.contains(itemsTreeIt->second->getId()))
         {
-            qDebug() << tr("Proccess")  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
-            qDebug() << "(";
+            //qDebug() << tr("Proccess")  << itemsTreeIt->second->getId() << itemsTreeIt->second->getName() << "needs to be removed";
+            //qDebug() << "(";
             for(auto&& childId: itemsTreeIt->second->getIdsWithChildren())
             {
-                try
-                {
-                    outdatedItemsIds.insert({childId, itemsTree.at(childId)});
-                }
-                catch (std::out_of_range& exc)
-                {
-                    qDebug() << "Process" << childId << "is not present in items tree";
-                }
+
+                outdatedItemsIds.insert({childId, itemsTree.at(childId)});
             }
-            qDebug() << ")";
+            //qDebug() << ")";
 
         }
         ++itemsTreeIt;
@@ -118,9 +118,9 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
     qDebug() << "---- Entire list of processes to remove:";
     for (auto& [id, processItem]: outdatedItemsIds)
     {
-        qDebug() << "\t Erasing of" << id << processItem->getName();
+        //qDebug() << "\t Erasing of" << id << processItem->getName();
         removeItem(id);
-        qDebug() << "Record removed";
+        //qDebug() << "Record removed";
         itemsTree.erase(id);
         _persistentIndices.erase(id);
         processItem->setReadyToDelete();
@@ -270,42 +270,35 @@ void ProcessTreeModel::removeItem(SIZE_T processId)
 void ProcessTreeModel::addItem(ProcessTreeItem* item, const QModelIndex& parentIndex)
 {
     beginInsertRows(parentIndex, rowCount(parentIndex), rowCount(parentIndex));
+
     endInsertRows();
 }
 bool ProcessTreeModel::updateRow(SIZE_T processId)
 {
     auto indexIt = _persistentIndices.find(processId);
-    if(indexIt == _persistentIndices.end() || !indexIt->second.isValid())
+    if(indexIt == _persistentIndices.end())
     {
         return false;
     }
 
     auto idx = indexIt->second;
 
-    if (!idx.isValid() || idx.column() < 0)
-    {
-        return false;
-    }
-    if (ProcessTreeItem *item = getItemByIndex(idx))
-    {
-        QModelIndex fromIndex = index(idx.row(), 0, idx.parent());
-        QModelIndex toIndex = index(idx.row(), static_cast<int>(Properties::END) - 1, idx.parent());
+    QModelIndex fromIndex = index(idx.row(), 0, idx.parent());
+    QModelIndex toIndex = index(idx.row(), static_cast<int>(Properties::END) - 1, idx.parent());
 
-        emit dataChanged(fromIndex, toIndex);
-        return true;
-    }
-    return false;
+    emit dataChanged(fromIndex, toIndex);
+    return true;
+
 }
 
 QModelIndex ProcessTreeModel::index(int row, int column, const QModelIndex &parent) const
 {
     ProcessTreeItem *parentItem = getItemByIndex(parent);
 
-    //qDebug() << "Creating index for row = " << row << " column = " << column << "at parent = " << parentItem->getId();
+    //qDebug() << "Creating index for parent" << parentItem->getId() << "row = " << row << " column = " << column << "at parent = " << parentItem->getId();
     if (row < parentItem->getChildCount())
     {
         ProcessTreeItem *childItem = parentItem->getChildAt(row);
-        //qDebug() << "Creating index for row = " << row << " column = " << column;
         if (childItem)
         {
             QModelIndex index = createIndex(row, column, childItem);
@@ -314,7 +307,6 @@ QModelIndex ProcessTreeModel::index(int row, int column, const QModelIndex &pare
             {
                 QPersistentModelIndex persistentIndex(index);
                 _persistentIndices.insert({childItem->getId(), persistentIndex});
-                qDebug() << "Creating persistent index for ID = " << childItem->getId() << childItem->getName() ;
             }
             return index;
         }
@@ -357,5 +349,10 @@ int ProcessTreeModel::rowCount(const QModelIndex &parent) const
 
 ProcessTreeItem* ProcessTreeModel::getItemByIndex(const QModelIndex &index) const
 {
-    return (index.isValid()) ? static_cast<ProcessTreeItem*>(index.internalPointer()) : m_rootItem;
+    if (index.isValid())
+    {
+        auto item = static_cast<ProcessTreeItem*>(index.internalPointer());
+        return item;
+    }
+    return m_rootItem;
 }

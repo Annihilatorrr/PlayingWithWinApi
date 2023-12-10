@@ -6,6 +6,7 @@
 #include <QtConcurrent/QtConcurrent>
 #include <QToolbar>
 #include <QHeaderView>
+#include <QSizePolicy>
 #include <process.h>
 #include <ranges>
 MainWindow::MainWindow(WA::IWinProcessService* processService, QWidget *parent)
@@ -64,6 +65,11 @@ void MainWindow::setupUi()
     m_treeView = new QTreeView();
     m_treeViewModel = new ProcessTreeModel(this);
 
+    proxyModel = new ProcessFilterModel(this);
+    proxyModel->setSourceModel(m_treeViewModel);
+    proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
+    proxyModel->setFilterKeyColumn(0);
+
     m_tableView = new QTableView();
     m_tableView->setWordWrap(false);
     m_tableViewModel = new ProcessTableModel(this);
@@ -71,6 +77,15 @@ void MainWindow::setupUi()
     verticalHeader->setSectionResizeMode(QHeaderView::Fixed);
     verticalHeader->setDefaultSectionSize(24);
 
+    findByNameTextEdit = new QLineEdit();
+    connect(findByNameTextEdit, &QLineEdit::textChanged, [=](const QString &)
+    {
+        proxyModel->setSearchText(findByNameTextEdit->text());
+
+    });
+    findByNameTextEdit->setMinimumHeight(30);
+    findByNameTextEdit->setMaximumHeight(30);
+    findByNameTextEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
     m_contextMenu = new QMenu(m_treeView);
     auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
     auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
@@ -81,7 +96,7 @@ void MainWindow::setupUi()
     m_contextMenu->addAction(propertiesAction);
 
     //(static_cast<QWidget*>(treeView->header()))->hide();
-    m_treeView->setModel(m_treeViewModel);
+    m_treeView->setModel(proxyModel);
     m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
 
      m_tableView->setModel(m_tableViewModel);
@@ -91,6 +106,7 @@ void MainWindow::setupUi()
     header->resizeSection(2, 100);
     header->setSectionResizeMode(0, QHeaderView::Stretch);
     m_treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    layout->addWidget(findByNameTextEdit);
     layout->addWidget(m_treeView);
     layout->addWidget(m_tableView);
     m_treeView->setVisible(m_displayAsTree);
@@ -143,8 +159,9 @@ void MainWindow::setupUi()
 void MainWindow::propertiesMenuActionClicked()
 {
     auto indexes = m_treeView->selectionModel()->selectedIndexes();
-    for (const auto& index: indexes)
+    for (const auto& proxyIndex: indexes)
     {
+        auto index = proxyModel->mapToSource(proxyIndex);
         if (index.column() == 0)
         {
             auto item = m_treeViewModel->getItemByIndex(index);
@@ -161,8 +178,9 @@ void MainWindow::propertiesMenuActionClicked()
 void MainWindow::killProcessMenuActionClicked()
 {
     auto indexes = m_treeView->selectionModel()->selectedIndexes();
-    for (const auto& index: indexes)
+    for (const auto& proxyIndex: indexes)
     {
+        auto index = proxyModel->mapToSource(proxyIndex);
         if (index.column() == 0)
         {
             auto item = m_treeViewModel->getItemByIndex(index);

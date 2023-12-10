@@ -8,8 +8,10 @@
 #include <QFutureWatcher>
 #include <QCoreApplication>
 #include <QtWidgets/QTreeView>
+#include <QtWidgets/QLineEdit>
 #include <QtWidgets/QTableView>
 #include "processtreemodel.h"
+#include "processfiltermodel.h"
 #include "processtablemodel.h"
 #include "iprocessservice.h"
 
@@ -32,9 +34,10 @@ public:
     QStatusBar *statusbar;
     QTreeView* m_treeView;
     QTableView* m_tableView;
+    ProcessFilterModel* proxyModel;
     ProcessTreeModel* m_treeViewModel;
     ProcessTableModel* m_tableViewModel;
-
+    QLineEdit* findByNameTextEdit;
     void setupUi();
     void retranslateUi();
     ~MainWindow();
