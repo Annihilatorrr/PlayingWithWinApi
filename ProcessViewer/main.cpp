@@ -7,7 +7,7 @@
 #include "fakeprocessservice.h"
 #include "iwinprocessservice.h"
 #include "winprocessservice.h"
-
+#include <QFile>
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -22,6 +22,10 @@ int main(int argc, char *argv[])
         }
     }
 
+    QFile styleSheetFile(":/mainstylesheet");
+    styleSheetFile.open(QFile::ReadOnly);
+    QString styleSheet = styleSheetFile.readAll();
+    a.setStyleSheet(styleSheet);
     WA::IWinProcessService* processService = new WA::WinProcessService();
     MainWindow w(processService);
     //MainWindow w(FakeProcessService{});

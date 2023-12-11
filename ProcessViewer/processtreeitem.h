@@ -44,7 +44,7 @@ public:
     double getCpuUsage() const { return m_cpuUsage; }
     void setCpuUsage(double cpuUsage) {m_cpuUsage = cpuUsage; }
 
-    SIZE_T getMorkingSetSize() const { return m_workingSetSize; }
+    SIZE_T getWorkingSetSize() const { return m_workingSetSize; }
     void setWorkingSetSize(SIZE_T workingSetSize) {m_workingSetSize = workingSetSize; }
 
     SIZE_T getPageFileUsage() const { return m_pageFileUsage; }
@@ -77,7 +77,8 @@ public:
     }
     void setProperty(std::function<void(ProcessTreeItem&)> setter){setter(*this);}
     ProcessTreeItem *getParent() const { return m_parent; }
-    void setParent(ProcessTreeItem* parent) { m_parent = parent; }
+    void setParent(ProcessTreeItem* parent)
+    { m_parent = parent; }
 
     ProcessTreeItem *getChildAt(int row) const { return m_children.value(row); }
     ProcessTreeItem* getChildById(SIZE_T id);

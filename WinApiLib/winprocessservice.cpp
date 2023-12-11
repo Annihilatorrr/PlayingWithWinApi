@@ -31,13 +31,6 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 			break;
 		}
 
-		SAFEARRAY* psaNames = nullptr;
-		hr = pclsObj->GetNames(
-			nullptr,
-			WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY,
-			nullptr,
-			&psaNames);
-		SafeArrayDestroy(psaNames);
 
 		const auto name = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
 
@@ -50,8 +43,10 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 		auto pt = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"PercentProcessorTime"));
 		perfData.percentProcessorTime = std::stoull(pt);
 		data[perfData.processId] = perfData;
+		pclsObj->Release();
 
 	}
+	pEnumerator->Release();
 	return data;
 }
 std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom(IWbemServices* pServices)
@@ -67,50 +62,18 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom(I
 	IWbemClassObject* pclsObj = nullptr;
 	ULONG uReturn = 0;
 
-	std::map<unsigned int, ProcessInfo> processMap;
-	std::set<std::wstring> propertiesNames;
+	std::map<unsigned int, ProcessInfo> processMap{};
 
 	while (pEnumerator)
 	{
 		hr = pEnumerator->Next(WBEM_INFINITE, 1, &pclsObj, &uReturn);
+		
 		if (uReturn == 0)
 		{
 			break;
 		}
 
-		SAFEARRAY* psaNames = nullptr;
-		hr = pclsObj->GetNames(
-			nullptr,
-			WBEM_FLAG_ALWAYS | WBEM_FLAG_NONSYSTEM_ONLY,
-			nullptr,
-			&psaNames);
-		if (propertiesNames.empty())
-		{
-			VARIANT* raw;
-			HRESULT hr = SafeArrayAccessData(psaNames, reinterpret_cast<void**>(&raw)); // direct access to SA memory
-			if (SUCCEEDED(hr))
-			{
-				long lLower, lUpper;
-				SafeArrayGetLBound(psaNames, 1, &lLower);
-				SafeArrayGetUBound(psaNames, 1, &lUpper);
-
-				long elementCnt = lUpper - lLower + 1;
-				for (LONG i = 0; i < elementCnt; ++i)  // iterate through returned values
-				{
-					_bstr_t		str;
-					wchar_t* pwszPropName = nullptr;
-					SafeArrayGetElement(psaNames, &i, &pwszPropName);
-					propertiesNames.insert(pwszPropName);
-				}
-			}
-
-			hr = ::SafeArrayUnaccessData(psaNames);
-		}
-		// Get the number of properties.
-		long lLower, lUpper;
-		SafeArrayGetLBound(psaNames, 1, &lLower);
-		SafeArrayGetUBound(psaNames, 1, &lUpper);
-
+		
 		const auto name = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
 		auto processId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"ProcessId"));
 		const auto sessionId = ComHelper::readVariant<unsigned int>(pclsObj, std::wstring(L"SessionId"));
@@ -161,7 +124,7 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom(I
 				}
 			}
 		}
-		SafeArrayDestroy(psaNames);
+
 		processMap.insert({ pi.id, pi });
 		pclsObj->Release();
 	}
@@ -333,9 +296,10 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom()
 		auto processTree = getProcessTreeByCom(pServices);
 		pServices->Release();
 		pLocator->Release();
+		CoUninitialize();
 		return processTree;
 	}
-
+	pLocator->Release();
 	CoUninitialize();
 	return {};
 }

@@ -20,15 +20,7 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
     for (auto& [processId, pi] : processInfoRecords)
     {
         auto existintgTreeItemIt = itemsTree.find(processId);
-        if (existintgTreeItemIt == itemsTree.end())
-        {
-            itemsTree[pi.id] = new ProcessTreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
-            itemsTree[pi.id]->setDescription(QString::fromStdWString(pi.description));
-            itemsTree[pi.id]->setExecutablePath(QString::fromStdWString(pi.executablePath));
-            itemsTree[pi.id]->setPercentage(pi.perfData.percentProcessorTime);
-            itemsTree[pi.id]->setFrequency(pi.perfData.frequency100Ns);
-        }
-        else
+        if (existintgTreeItemIt != itemsTree.end())
         {
             existintgTreeItemIt->second->setName(QString::fromStdWString(pi.name));
             existintgTreeItemIt->second->setWorkingSetSize(pi.extendedInfo.memoryInfo.WorkingSetSize);
@@ -45,6 +37,14 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
             existintgTreeItemIt->second->setPercentage(pi.perfData.percentProcessorTime);
             existintgTreeItemIt->second->setFrequency(pi.perfData.frequency100Ns);
         }
+        else
+        {
+            itemsTree[pi.id] = new ProcessTreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
+            itemsTree[pi.id]->setDescription(QString::fromStdWString(pi.description));
+            itemsTree[pi.id]->setExecutablePath(QString::fromStdWString(pi.executablePath));
+            itemsTree[pi.id]->setPercentage(pi.perfData.percentProcessorTime);
+            itemsTree[pi.id]->setFrequency(pi.perfData.frequency100Ns);
+        }
     }
     emit layoutAboutToBeChanged();
     // set parents for all existing items
@@ -58,7 +58,6 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
                 bool containsChild = foundParent->second->contains(processId);
                 if (!containsChild)
                 {
-                    foundParent->second->addChild(childItem);
                     auto persistentParentIndexIt = _persistentIndices.find(pi.parentProcessId);
                     if (persistentParentIndexIt != _persistentIndices.end())
                     {
@@ -67,19 +66,17 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
                     }
                     else
                     {
-                        int r = 0;
-                        int e = 3;
+                        foundParent->second->addChild(childItem);
                     }
                 }
             }
-            else // non is non existing process
+            else // if parent is non-existent process
             {
-                //qDebug() << "Parent process not found for process" << processId;
                 ProcessTreeItem* existintgChild = m_rootItem->getChildById(processId);
                 if (!existintgChild)
                 {
-                    m_rootItem->addChild(childItem);
-                    addItem (childItem, QModelIndex());
+                    // append it as highest level process
+                    addItem(childItem, QModelIndex());
                 }
             }
         }
@@ -88,8 +85,8 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
             bool containsChild = m_rootItem->contains(processId);
             if (!containsChild)
             {
-                m_rootItem->addChild(childItem);
-                //addItem(m_rootItem, QModelIndex());
+                //m_rootItem->addChild(childItem);
+                addItem(childItem, QModelIndex());
             }
         }
         //updateRow(processId);
@@ -186,7 +183,7 @@ QVariant ProcessTreeModel::data(const QModelIndex &index, int role) const
     }
     case Properties::WorkingSet:
     {
-        return QString("%L1 K").arg(item->getMorkingSetSize());
+        return QString("%L1 K").arg(item->getWorkingSetSize());
     }
     case Properties::ExecutablePath:
         return item->getExecutablePath();
@@ -233,6 +230,10 @@ void ProcessTreeModel::removeItem(SIZE_T processId)
     QModelIndex parentIndex;
 
     ProcessTreeItem* item = itemsTree.at(processId);
+    if (item == nullptr)
+    {
+        return;
+    }
     auto parentId = item->getParent()->getId();
     auto parentIndexIt = _persistentIndices.find(parentId);
 
@@ -270,7 +271,7 @@ void ProcessTreeModel::removeItem(SIZE_T processId)
 void ProcessTreeModel::addItem(ProcessTreeItem* item, const QModelIndex& parentIndex)
 {
     beginInsertRows(parentIndex, rowCount(parentIndex), rowCount(parentIndex));
-
+    getItemByIndex(parentIndex)->addChild(item);
     endInsertRows();
 }
 bool ProcessTreeModel::updateRow(SIZE_T processId)

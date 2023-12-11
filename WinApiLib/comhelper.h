@@ -15,6 +15,7 @@ public:
 		if (SUCCEEDED(hr) && vtProp.bstrVal != nullptr)
 		{
 			std::wstring propertyValue(vtProp.bstrVal);
+			VariantClear(&vtProp);
 			return propertyValue;
 		}
 		return L"";
@@ -27,6 +28,7 @@ public:
 		if (SUCCEEDED(hr))
 		{
 			const auto propertyValue = vtProp.uintVal;
+			VariantClear(&vtProp);
 			return propertyValue;
 		}
 		return -1;
@@ -39,6 +41,7 @@ public:
 		if (SUCCEEDED(hr))
 		{
 			const auto propertyValue = vtProp.ulVal;
+			VariantClear(&vtProp);
 			return propertyValue;
 		}
 		return 0UL;
@@ -51,6 +54,7 @@ public:
 		if (SUCCEEDED(hr) && vtProp.vt == VT_BSTR)
 		{
 			const auto propertyValue = vtProp.bstrVal;
+			VariantClear(&vtProp);
 			return propertyValue;
 		}
 		wchar_t a[4]{};

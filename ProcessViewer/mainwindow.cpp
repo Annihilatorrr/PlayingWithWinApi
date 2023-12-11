@@ -5,6 +5,7 @@
 #include <QLayout>
 #include <QtConcurrent/QtConcurrent>
 #include <QToolbar>
+#include <QLabel>
 #include <QHeaderView>
 #include <QSizePolicy>
 #include <process.h>
@@ -32,103 +33,11 @@ std::map<unsigned int, ProcessInfo> MainWindow::getProcesses()
     return processes;
 }
 
-void MainWindow::setupUi()
+void MainWindow::connectSignalsAndSlots()
 {
-    m_topToolbar = new QToolBar();
-    m_topToolbar->setContextMenuPolicy(Qt::PreventContextMenu);
-    QAction* switchToListMode = new QAction();
-    connect(switchToListMode, &QAction::triggered, [this]()
-            {
-                m_displayAsTree = false;
-                m_treeView->setVisible(m_displayAsTree);
-                m_tableView->setVisible(!m_displayAsTree);
-            });
-    switchToListMode->setToolTip(QCoreApplication::translate("MainWindow", "List mode", nullptr));
-    QAction* switchToTreeMode = new QAction();
-    connect(switchToTreeMode, &QAction::triggered, [this]()
-            {
-                m_displayAsTree = true;
-                m_treeView->setVisible(m_displayAsTree);
-                m_tableView->setVisible(!m_displayAsTree);
-            });
-    switchToTreeMode->setToolTip(QCoreApplication::translate("MainWindow", "Tree mode", nullptr));
-    m_topToolbar->addAction(switchToListMode);
-    m_topToolbar->addAction(switchToTreeMode);
-    addToolBar(m_topToolbar);
-    setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
-    resize(800, 600);
-    centralwidget = new QWidget(this);
-    centralwidget->setObjectName("centralwidget");
-    QVBoxLayout* layout = new QVBoxLayout(centralwidget);
-    pushButton = new QPushButton();
-    pushButton->setText(QCoreApplication::translate("MainWindow", "clickme", nullptr));
-    m_treeView = new QTreeView();
-    m_treeViewModel = new ProcessTreeModel(this);
-
-    proxyModel = new ProcessFilterModel(this);
-    proxyModel->setSourceModel(m_treeViewModel);
-    proxyModel->setFilterCaseSensitivity(Qt::CaseInsensitive);
-    proxyModel->setFilterKeyColumn(0);
-
-    m_tableView = new QTableView();
-    m_tableView->setWordWrap(false);
-    m_tableViewModel = new ProcessTableModel(this);
-    QHeaderView *verticalHeader = m_tableView->verticalHeader();
-    verticalHeader->setSectionResizeMode(QHeaderView::Fixed);
-    verticalHeader->setDefaultSectionSize(24);
-
-    findByNameTextEdit = new QLineEdit();
-    connect(findByNameTextEdit, &QLineEdit::textChanged, [=](const QString &)
-    {
-        proxyModel->setSearchText(findByNameTextEdit->text());
-
-    });
-    findByNameTextEdit->setMinimumHeight(30);
-    findByNameTextEdit->setMaximumHeight(30);
-    findByNameTextEdit->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-    m_contextMenu = new QMenu(m_treeView);
-    auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
-    auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
-    connect(killProcessAction, &QAction::triggered, this, &MainWindow::killProcessMenuActionClicked);
-    connect(propertiesAction, &QAction::triggered, this, &MainWindow::propertiesMenuActionClicked);
-
-    m_contextMenu->addAction(killProcessAction);
-    m_contextMenu->addAction(propertiesAction);
-
-    //(static_cast<QWidget*>(treeView->header()))->hide();
-    m_treeView->setModel(proxyModel);
-    m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
-
-     m_tableView->setModel(m_tableViewModel);
-    auto header = m_treeView->header();
-    header->resizeSection(0, 100);
-    header->resizeSection(1, 100);
-    header->resizeSection(2, 100);
-    header->setSectionResizeMode(0, QHeaderView::Stretch);
-    m_treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    layout->addWidget(findByNameTextEdit);
-    layout->addWidget(m_treeView);
-    layout->addWidget(m_tableView);
-    m_treeView->setVisible(m_displayAsTree);
-    m_tableView->setVisible(!m_displayAsTree);
-    layout->addWidget(pushButton);
-    setCentralWidget(centralwidget);
-    menubar = new QMenuBar(this);
-    menubar->setObjectName("menubar");
-    menubar->setGeometry(QRect(0, 0, 800, 22));
-    setMenuBar(menubar);
-    statusbar = new QStatusBar(this);
-    statusbar->setObjectName("statusbar");
-    setStatusBar(statusbar);
-
-    retranslateUi();
-
-    QMetaObject::connectSlotsByName(this);
-
-    _processInfoTimer = new QTimer;
-    _processInfoTimer->setSingleShot(false);
     connect(m_treeView, &QTreeView::customContextMenuRequested, this, &MainWindow::onProcessTreeContextMenu);
-    connect(_processInfoTimer,&QTimer::timeout,this,[this]()
+    connect(m_tableView, &QTableView::customContextMenuRequested, this, &MainWindow::onProcessTableContextMenu);
+    connect(m_processInfoTimer, &QTimer::timeout, this, [this]()
             {
                 auto processesStateWatcher = new QFutureWatcher<std::map<unsigned int, ProcessInfo>>();
                 currentProcessesResultFuture = QtConcurrent::run(&MainWindow::getProcesses, this);
@@ -152,41 +61,281 @@ void MainWindow::setupUi()
                 connect(processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::finished, processesStateWatcher, &QFutureWatcher<std::map<unsigned int, ProcessInfo>>::deleteLater);
                 processesStateWatcher->setFuture(currentProcessesResultFuture);
             });
+}
 
-    _processInfoTimer->start(1000);
+void MainWindow::configureTableHorizontalHeader()
+{
+    auto tableHorizontalHeader = m_tableView->horizontalHeader();
+    tableHorizontalHeader->resizeSection(0, 170);
+    tableHorizontalHeader->resizeSection(1, 50);
+    tableHorizontalHeader->resizeSection(2, 100);
+    tableHorizontalHeader->resizeSection(3, 100);
+    tableHorizontalHeader->setSectionResizeMode(4, QHeaderView::ResizeMode::Stretch);
+    tableHorizontalHeader->setStretchLastSection(true);
+    tableHorizontalHeader->setSectionsClickable(true);
+}
+
+void MainWindow::configureTreeViewHeader()
+{
+    auto treeViewHeader = m_treeView->header();
+    treeViewHeader->setSectionsClickable(true);
+    treeViewHeader->resizeSection(0, 170);
+    treeViewHeader->resizeSection(1, 50);
+    treeViewHeader->resizeSection(2, 100);
+    treeViewHeader->resizeSection(3, 100);
+    treeViewHeader->setSectionResizeMode(4, QHeaderView::ResizeMode::Stretch);
+    treeViewHeader->resizeSection(5, 70);
+}
+
+void MainWindow::configureTreeView()
+{
+    m_treeView->setModel(m_processTreeProxyModel);
+    m_treeView->setContextMenuPolicy(Qt::CustomContextMenu);
+    m_treeView->setSortingEnabled(true);
+    m_treeView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    m_treeView->setVisible(m_displayAsTree);
+}
+
+void MainWindow::setupUi()
+{
+    setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
+    resize(800, 600);
+
+    m_treeView = new QTreeView();
+    m_tableView = new QTableView();
+
+    m_switchToTableModeAction = new QAction();
+    m_switchToTableModeAction->setIcon(QIcon(":/Icons/list-view.png"));
+
+    m_switchToTableModeAction->setToolTip(QCoreApplication::translate("MainWindow", "List mode", nullptr));
+
+    m_switchToTreeModeAction = new QAction();
+    m_switchToTreeModeAction->setIcon(QIcon(":/Icons/tree-view.png"));
+
+    m_filterLayout = new QHBoxLayout();
+    connect(m_switchToTableModeAction, &QAction::triggered, [this]()
+            {
+                m_displayAsTree = false;
+                m_treeView->setVisible(m_displayAsTree);
+                m_tableView->setVisible(!m_displayAsTree);
+                m_filterLayout->insertSpacerItem(0, new QSpacerItem(15, 0, QSizePolicy::Fixed, QSizePolicy::Fixed));
+            });
+    connect(m_switchToTreeModeAction, &QAction::triggered, [this]()
+            {
+                m_displayAsTree = true;
+                m_treeView->setVisible(m_displayAsTree);
+                m_tableView->setVisible(!m_displayAsTree);
+            });
+    m_switchToTreeModeAction->setToolTip(QCoreApplication::translate("MainWindow", "Tree mode", nullptr));
+
+    m_topToolbar = new QToolBar();
+    m_topToolbar->setMovable(false);
+    m_topToolbar->setContextMenuPolicy(Qt::PreventContextMenu);
+    m_topToolbar->addAction(m_switchToTableModeAction);
+    m_topToolbar->addAction(m_switchToTreeModeAction);
+    addToolBar(m_topToolbar);
+
+    m_centralwidget = new QWidget(this);
+    m_centralwidget->setObjectName("centralwidget");
+    QVBoxLayout* layout = new QVBoxLayout(m_centralwidget);
+
+    m_treeViewModel = new ProcessTreeModel(this);
+
+    m_processTreeProxyModel = new ProcessTreeFilterModel(this);
+    m_processTreeProxyModel->setSourceModel(m_treeViewModel);
+
+    configureTreeView();
+
+    m_tableView->setWordWrap(false);
+    m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
+
+    m_tableViewModel = new ProcessTableModel(this);
+    configureTreeViewHeader();
+    m_processTableProxyModel = new ProcessTableFilterModel(this);
+    m_processTableProxyModel->setSourceModel(m_tableViewModel);
+
+    QHeaderView* tableViewVerticalHeader = m_tableView->verticalHeader();
+
+    tableViewVerticalHeader->setDefaultSectionSize(24);
+
+
+    QWidget* paddingWidget = new QLabel();
+    paddingWidget->setStyleSheet("QWidget { background-color : cyan; color : blue; }");
+    paddingWidget->setMaximumWidth(10);
+
+    m_filterLayout->setSpacing(1);
+    //filterLayout->setSizeConstraint(QLayout::SetMaximumSize);
+    for (int i = 0; i < m_tableViewModel->columnCount() - 1; i++) {
+        QWidget* filteringWidget = createFilterWidgetForColumn(i);
+        if (filteringWidget != nullptr)
+        {
+            m_filteringWidgets[i] = filteringWidget;
+            m_filterLayout->addWidget(filteringWidget, 0, Qt::AlignLeft);
+        }
+        else
+        {
+            QSpacerItem* spacer = new QSpacerItem(1, 25, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+            m_filterLayout->addSpacerItem(spacer);
+        }
+    }
+    m_filterLayout->addSpacerItem(new QSpacerItem(1, 25, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed));
+    //filterLayout->adds
+    m_contextMenu = new QMenu();
+    auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
+    auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
+    connect(killProcessAction, &QAction::triggered, this, &MainWindow::onKillProcessMenuActionClicked);
+    connect(propertiesAction, &QAction::triggered, this, &MainWindow::onPropertiesMenuActionClicked);
+
+    m_contextMenu->addAction(killProcessAction);
+    m_contextMenu->addAction(propertiesAction);
+
+    m_tableView->setModel(m_processTableProxyModel);
+    m_tableView->setSortingEnabled(true);
+
+    // tableViewVerticalHeader->setSectionResizeMode(0, QHeaderView::Interactive);
+    configureTableHorizontalHeader();
+
+    layout->addLayout(m_filterLayout);
+    layout->addWidget(m_treeView);
+    layout->addWidget(m_tableView);
+
+    m_tableView->setVisible(!m_displayAsTree);
+    setCentralWidget(m_centralwidget);
+    m_menuBar = new QMenuBar(this);
+    m_menuBar->setObjectName("menubar");
+    m_menuBar->setGeometry(QRect(0, 0, 800, 22));
+    setMenuBar(m_menuBar);
+    m_statusBar = new QStatusBar(this);
+    m_statusBar->setObjectName("statusbar");
+    setStatusBar(m_statusBar);
+
+    retranslateUi();
+
+    QMetaObject::connectSlotsByName(this);
+
+    m_processInfoTimer = new QTimer;
+    m_processInfoTimer->setSingleShot(false);
+
+    connect(m_tableView->horizontalHeader(), &QHeaderView::sectionResized, this, &MainWindow::headerResized);
+    connectSignalsAndSlots();
+
+    m_processInfoTimer->start(1000);
 } // setupUi
 
-void MainWindow::propertiesMenuActionClicked()
+void MainWindow::headerResized(int index, int old, int news)
 {
-    auto indexes = m_treeView->selectionModel()->selectedIndexes();
-    for (const auto& proxyIndex: indexes)
+    if (m_filteringWidgets.contains(index))
+    m_filteringWidgets[index]->setFixedWidth(news);
+//    for(auto& [columnPosition, widget]: m_filteringWidgets)
+//    {
+//        auto section = m_tableView->horizontalHeader()->sectionSize(columnPosition);
+//        widget->setFixedWidth(section);
+//    }
+//    QMainWindow::resizeEvent(event);
+}
+QWidget* MainWindow::createFilterWidgetForColumn(int i)
+{
+    switch (i) {
+    // пример текстового поля
+    case 0:
+    case 1:
+    case 4:
     {
-        auto index = proxyModel->mapToSource(proxyIndex);
-        if (index.column() == 0)
-        {
-            auto item = m_treeViewModel->getItemByIndex(index);
-            ProcessProperties model;
-            model.processId = item->getId();
-            model.processName = item->getName();
+        auto widget = new QLineEdit();
+        //widget->setValidator(new QRegExpValidator(QRegExp("[A-Za-z]{0,255}")));
+        connect(widget, &QLineEdit::textChanged,[=](const QString & text)
+                {
+                    if (m_displayAsTree)
+                    {
+                        m_processTreeProxyModel->setSearchText(text);
+                    }
+                    else
+                    {
+                        m_processTableProxyModel->setSearchText(text, i);
+                    }
+                });
 
-            ProcessPropertiesDialog* otherWidget = new ProcessPropertiesDialog(model, this);
-            QObject::connect(this, &QMainWindow::destroyed, otherWidget, &QWidget::deleteLater);
-            otherWidget->show();
+        //widget->setMaximumWidth(m_tableView->horizontalHeader()->sectionSize(i));
+        //widget->setMinimumWidth(m_tableView->horizontalHeader()->sectionSize(i));
+        return widget;
+    }
+    default:{
+        return nullptr;
+        auto lbl = new QLabel();
+        lbl->setStyleSheet("QLabel { background-color : red; color : blue; }");
+        return lbl;
+    }
+    }
+}
+void MainWindow::onPropertiesMenuActionClicked()
+{
+    if (m_displayAsTree)
+    {
+        auto indexes = m_treeView->selectionModel()->selectedIndexes();
+        for (const auto& proxyIndex: indexes)
+        {
+            auto index = m_processTreeProxyModel->mapToSource(proxyIndex);
+            if (index.column() == 0)
+            {
+                auto item = m_treeViewModel->getItemByIndex(index);
+                ProcessProperties model;
+                model.processId = item->getId();
+                model.processName = item->getName();
+
+                ProcessPropertiesDialog* propertiesDialog = new ProcessPropertiesDialog(model, this);
+                QObject::connect(this, &QMainWindow::destroyed, propertiesDialog, &QWidget::deleteLater);
+                propertiesDialog->show();
+            }
+        }
+    }
+    else
+    {
+        auto indexes = m_tableView->selectionModel()->selectedIndexes();
+        for (const auto& proxyIndex: indexes)
+        {
+            auto index = m_processTableProxyModel->mapToSource(proxyIndex);
+            if (index.column() == 0)
+            {
+                auto item = m_tableViewModel->getChildAtRow(index.row());
+                ProcessProperties model;
+                model.processId = item->getId();
+                model.processName = item->getName();
+
+                ProcessPropertiesDialog* propertiesDialog = new ProcessPropertiesDialog(model, this);
+                QObject::connect(this, &QMainWindow::destroyed, propertiesDialog, &QWidget::deleteLater);
+                propertiesDialog->show();
+            }
         }
     }
 }
-void MainWindow::killProcessMenuActionClicked()
+void MainWindow::onKillProcessMenuActionClicked()
 {
-    auto indexes = m_treeView->selectionModel()->selectedIndexes();
-    for (const auto& proxyIndex: indexes)
+    if (m_displayAsTree)
     {
-        auto index = proxyModel->mapToSource(proxyIndex);
-        if (index.column() == 0)
+        auto indexes = m_treeView->selectionModel()->selectedIndexes();
+        for (const auto& proxyIndex: indexes)
         {
-            auto item = m_treeViewModel->getItemByIndex(index);
-            qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();
-
-            _processService->kill(item->getId());
+            auto index = m_processTreeProxyModel->mapToSource(proxyIndex);
+            if (index.column() == 0)
+            {
+                auto item = m_treeViewModel->getItemByIndex(index);
+                qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();
+                _processService->kill(item->getId());
+            }
+        }
+    }
+    else
+    {
+        auto indexes = m_tableView->selectionModel()->selectedIndexes();
+        for (const auto& proxyIndex: indexes)
+        {
+            auto index = m_processTableProxyModel->mapToSource(proxyIndex);
+            if (index.column() == 0)
+            {
+                auto item = m_tableViewModel->getChildAtRow(index.row());
+                qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();
+                _processService->kill(item->getId());
+            }
         }
     }
 }
@@ -196,6 +345,15 @@ void MainWindow::onProcessTreeContextMenu(const QPoint &point)
     QModelIndex index = m_treeView->indexAt(point);
     if (index.isValid()) {
         auto coords = m_treeView->viewport()->mapToGlobal(point);
+        m_contextMenu->exec(coords);
+    }
+}
+
+void MainWindow::onProcessTableContextMenu(const QPoint &point)
+{
+    QModelIndex index = m_tableView->indexAt(point);
+    if (index.isValid()) {
+        auto coords = m_tableView->viewport()->mapToGlobal(point);
         m_contextMenu->exec(coords);
     }
 }

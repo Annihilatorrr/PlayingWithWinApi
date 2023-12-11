@@ -92,6 +92,7 @@ std::set<std::wstring> CimHelper::getWbemProperties(const wchar_t* query)
 
 			hr = ::SafeArrayUnaccessData(psaNames);
 		}
+		SafeArrayDestroy(psaNames);
 		pServices->Release();
 		pLocator->Release();
 	}
