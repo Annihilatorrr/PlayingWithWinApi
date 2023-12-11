@@ -132,7 +132,12 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             }
             existingItem.setPercentage(pi.perfData.percentProcessorTime);
             existingItem.setFrequency(pi.perfData.frequency100Ns);
-            updateRow(processId);
+            if (itemsTree[processId]->isDirty())
+            {
+                updateRow(processId);
+                //qDebug() << "Updated" << processId;
+                itemsTree[processId]->resetDirty();
+            }
         }
     }
 

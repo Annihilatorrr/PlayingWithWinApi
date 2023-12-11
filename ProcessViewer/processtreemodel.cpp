@@ -46,7 +46,7 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
             itemsTree[pi.id]->setFrequency(pi.perfData.frequency100Ns);
         }
     }
-    emit layoutAboutToBeChanged();
+    //emit layoutAboutToBeChanged();
     // set parents for all existing items
     for (auto& [processId, pi] : processInfoRecords)
     {
@@ -89,9 +89,14 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
                 addItem(childItem, QModelIndex());
             }
         }
-        //updateRow(processId);
+        if (itemsTree[processId]->isDirty())
+        {
+            updateRow(processId);
+            //qDebug() << "Updated" << processId;
+            itemsTree[processId]->resetDirty();
+        }
     }
-    emit layoutChanged();
+    //emit layoutChanged();
     //updateRow(processId);
     auto itemsTreeIt = itemsTree.begin();
     std::unordered_map<SIZE_T, ProcessTreeItem*> outdatedItemsIds;
@@ -277,7 +282,7 @@ void ProcessTreeModel::addItem(ProcessTreeItem* item, const QModelIndex& parentI
 bool ProcessTreeModel::updateRow(SIZE_T processId)
 {
     auto indexIt = _persistentIndices.find(processId);
-    if(indexIt == _persistentIndices.end())
+    if(indexIt == _persistentIndices.end() || !indexIt->second.isValid())
     {
         return false;
     }
@@ -289,7 +294,6 @@ bool ProcessTreeModel::updateRow(SIZE_T processId)
 
     emit dataChanged(fromIndex, toIndex);
     return true;
-
 }
 
 QModelIndex ProcessTreeModel::index(int row, int column, const QModelIndex &parent) const

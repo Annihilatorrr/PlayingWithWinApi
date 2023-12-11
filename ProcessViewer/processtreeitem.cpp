@@ -1,4 +1,4 @@
-#include "processtreeitem.h"
+    #include "processtreeitem.h"
 
 ProcessTreeItem::ProcessTreeItem(unsigned int id, const QString &name, SIZE_T workingSetSize, SIZE_T pageFileUsage, ProcessTreeItem *parent):
     m_id(id),

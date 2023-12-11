@@ -1,6 +1,7 @@
 #ifndef TreeItem_H
 #define TreeItem_H
 
+#include <limits>
 #include <QStandardItem>
 #include <Windows.h>
 class ProcessTreeItem
@@ -19,6 +20,7 @@ class ProcessTreeItem
     quint64 m_percentage;
     double m_cpuUsage;
 
+    bool m_isDirty;
 public:
     explicit ProcessTreeItem(unsigned int id, const QString &name, SIZE_T workingSetSize, SIZE_T pageFileUsage, ProcessTreeItem *parent = nullptr);
     explicit ProcessTreeItem(const QList<QVariant> &data, ProcessTreeItem *parent = 0);
@@ -26,11 +28,22 @@ public:
 
     unsigned int getId() const { return m_id; }
 
+    bool isDirty(){return m_isDirty;}
+    void resetDirty(){m_isDirty = false;}
+
     QString getName() const { return m_name; }
-    void setName(QString name) {m_name = name; }
+    void setName(QString name)
+    {
+        m_isDirty = m_isDirty || (m_name != name);
+        m_name = name;
+    }
 
     QString getDescription() const { return m_description; }
-    void setDescription(QString description) {m_description = description; }
+    void setDescription(QString description)
+    {
+        m_isDirty = m_isDirty ||  (m_description != m_description);
+        m_description = description;
+    }
 
     QString getExecutablePath() const { return m_executablePath; }
     void setExecutablePath(QString executablePath) {m_executablePath = executablePath; }
@@ -42,13 +55,26 @@ public:
     void setPercentage(quint64 percentage) {m_percentage = percentage; }
 
     double getCpuUsage() const { return m_cpuUsage; }
-    void setCpuUsage(double cpuUsage) {m_cpuUsage = cpuUsage; }
+    void setCpuUsage(double cpuUsage)
+    {
+        auto delta{fabs(m_cpuUsage - cpuUsage)};
+        m_isDirty = m_isDirty || (delta > std::numeric_limits<double>::epsilon());
+        m_cpuUsage = cpuUsage;
+    }
 
     SIZE_T getWorkingSetSize() const { return m_workingSetSize; }
-    void setWorkingSetSize(SIZE_T workingSetSize) {m_workingSetSize = workingSetSize; }
+    void setWorkingSetSize(SIZE_T workingSetSize)
+    {
+        m_isDirty = m_isDirty ||  (m_workingSetSize != workingSetSize);
+        m_workingSetSize = workingSetSize;
+    }
 
     SIZE_T getPageFileUsage() const { return m_pageFileUsage; }
-    void setPageFileUsage(SIZE_T pageFileUsage) {m_pageFileUsage = pageFileUsage; }
+    void setPageFileUsage(SIZE_T pageFileUsage)
+    {
+        m_isDirty = m_isDirty || (m_pageFileUsage != pageFileUsage);
+        m_pageFileUsage = pageFileUsage;
+    }
 
     bool isReadyToDelete() const { return m_isReadyToDelete; }
     void setReadyToDelete()
