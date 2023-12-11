@@ -1,0 +1,14 @@
+<RCC>
+    <qresource prefix="/i18n">
+        <file alias="ProcessViewer_en_US">ProcessViewer_en_US.qm</file>
+        <file alias="ProcessViewer_ru_RU">ProcessViewer_ru_RU.qm</file>
+    </qresource>
+    <qresource prefix="/">
+        <file alias="mainstylesheet">SyNet.qss</file>
+        <file>Icons/tree-close.png</file>
+        <file>Icons/tree-open.png</file>
+        <file>Icons/tree-view.png</file>
+        <file>Icons/list-view.png</file>
+        <file>Icons/app.png</file>
+    </qresource>
+</RCC>

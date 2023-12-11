@@ -112,7 +112,7 @@ message("Updating translations files")
 endif()
 
 
-include_directories(d:/projects/PlayingWithWinApi/WinApiLib)
+include_directories(${CMAKE_SOURCE_DIR}/../WinApiLib)
 
 #add_library(wbemuuid.lib SHARED IMPORTED)
 #add_library(Wtsapi32.lib SHARED IMPORTED)
