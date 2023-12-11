@@ -11,7 +11,7 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 {
 	IEnumWbemClassObject* pEnumerator = nullptr;
 	std::map<unsigned int, PerfRawData> data;
-	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT Name, Caption, IDProcess, Timestamp_Sys100NS, PercentProcessorTime FROM Win32_PerfRawData_PerfProc_Process"),
+	auto hr = pServices->ExecQuery(bstr_t("WQL"), bstr_t("SELECT * FROM Win32_PerfRawData_PerfProc_Process"),
 		WBEM_FLAG_FORWARD_ONLY, nullptr, &pEnumerator);
 	if (FAILED(hr))
 	{
@@ -34,7 +34,6 @@ std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(I
 
 		const auto name = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Name"));
 
-		const auto caption = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"Caption"));
 
 		PerfRawData perfData;
 		perfData.processId = ComHelper::readVariant<UINT>(pclsObj, std::wstring(L"IDProcess"));

@@ -1,7 +1,7 @@
 #ifndef IPROCESSSERVICE_H
 #define IPROCESSSERVICE_H
 
-#include <iwinprocessservice.h>
+#include <map>
 #include <processinfo.h>
 
 class IProcessService

@@ -1,5 +1,6 @@
 #pragma once
 #include <comutil.h>
+#include <atlcomcli.h>
 #include <string>
 #include <wbemcli.h>
 
@@ -10,25 +11,28 @@ public:
 
 	template <> static std::wstring readVariant(IWbemClassObject* pclsObj, const std::wstring& propertyName)
 	{
-		VARIANT vtProp;
+		CComVariant vtProp;
 		auto hr = pclsObj->Get(propertyName.c_str(), 0, &vtProp, nullptr, nullptr);
-		if (SUCCEEDED(hr) && vtProp.bstrVal != nullptr)
+		if (SUCCEEDED(hr))
 		{
-			std::wstring propertyValue(vtProp.bstrVal);
+			if (vtProp.bstrVal != nullptr)
+			{
+				std::wstring propertyValue(vtProp.bstrVal);
+				return propertyValue;
+			}
 			VariantClear(&vtProp);
-			return propertyValue;
 		}
+		
 		return L"";
 	}
 
 	template <> static unsigned int readVariant(IWbemClassObject* pclsObj, const std::wstring& propertyName)
 	{
-		VARIANT vtProp;
+		CComVariant vtProp;
 		auto hr = pclsObj->Get(propertyName.c_str(), 0, &vtProp, nullptr, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			const auto propertyValue = vtProp.uintVal;
-			VariantClear(&vtProp);
 			return propertyValue;
 		}
 		return -1;
@@ -36,12 +40,11 @@ public:
 
 	template <> static unsigned long readVariant(IWbemClassObject* pclsObj, const std::wstring& propertyName)
 	{
-		VARIANT vtProp;
+		CComVariant vtProp;
 		auto hr = pclsObj->Get(propertyName.c_str(), 0, &vtProp, nullptr, nullptr);
 		if (SUCCEEDED(hr))
 		{
 			const auto propertyValue = vtProp.ulVal;
-			VariantClear(&vtProp);
 			return propertyValue;
 		}
 		return 0UL;
@@ -49,13 +52,15 @@ public:
 
 	template <> static BSTR readVariant(IWbemClassObject* pclsObj, const std::wstring& propertyName)
 	{
-		VARIANT vtProp;
+		CComVariant vtProp;
 		auto hr = pclsObj->Get(propertyName.c_str(), 0, &vtProp, nullptr, nullptr);
-		if (SUCCEEDED(hr) && vtProp.vt == VT_BSTR)
+		if (SUCCEEDED(hr))
 		{
-			const auto propertyValue = vtProp.bstrVal;
-			VariantClear(&vtProp);
-			return propertyValue;
+			if (vtProp.vt == VT_BSTR)
+			{
+				const auto propertyValue = vtProp.bstrVal;
+				return propertyValue;
+			}
 		}
 		wchar_t a[4]{};
 		wcscpy_s(a, 1, L"");

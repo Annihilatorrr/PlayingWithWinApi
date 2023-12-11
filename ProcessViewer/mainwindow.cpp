@@ -1,15 +1,29 @@
-#include "mainwindow.h"
-#include "processtreeitem.h"
-#include "processserviceexception.h"
-#include "processpropertiesdialog.h"
 #include <QLayout>
+#include <QComboBox>
 #include <QtConcurrent/QtConcurrent>
 #include <QToolbar>
 #include <QLabel>
 #include <QHeaderView>
 #include <QSizePolicy>
+#include <QTreeView>
+#include <QTableView>
 #include <process.h>
 #include <ranges>
+#include <QMenu>
+#include <QMenuBar>
+#include <QStatusBar>
+#include <QLineEdit>
+
+#include "mainwindow.h"
+#include "iwinprocessservice.h"
+#include "processtreeitem.h"
+#include "processtreemodel.h"
+#include "processtreefiltermodel.h"
+#include "processserviceexception.h"
+#include "filterbycomboboxmodel.h"
+#include "processpropertiesdialog.h"
+#include "processtablefiltermodel.h"
+#include "processtablemodel.h"
 MainWindow::MainWindow(WA::IWinProcessService* processService, QWidget *parent)
     : QMainWindow(parent), _processService(processService)
 {
@@ -70,8 +84,8 @@ void MainWindow::configureTableHorizontalHeader()
     tableHorizontalHeader->resizeSection(1, 50);
     tableHorizontalHeader->resizeSection(2, 100);
     tableHorizontalHeader->resizeSection(3, 100);
-    tableHorizontalHeader->setSectionResizeMode(4, QHeaderView::ResizeMode::Stretch);
-    tableHorizontalHeader->setStretchLastSection(true);
+    tableHorizontalHeader->resizeSection(4, 200);
+    tableHorizontalHeader->resizeSection(5, 70);
     tableHorizontalHeader->setSectionsClickable(true);
 }
 
@@ -83,7 +97,7 @@ void MainWindow::configureTreeViewHeader()
     treeViewHeader->resizeSection(1, 50);
     treeViewHeader->resizeSection(2, 100);
     treeViewHeader->resizeSection(3, 100);
-    treeViewHeader->setSectionResizeMode(4, QHeaderView::ResizeMode::Stretch);
+    treeViewHeader->resizeSection(4, 200);
     treeViewHeader->resizeSection(5, 70);
 }
 
@@ -103,7 +117,7 @@ void MainWindow::setupUi()
 
     m_treeView = new QTreeView();
     m_tableView = new QTableView();
-
+    m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_switchToTableModeAction = new QAction();
     m_switchToTableModeAction->setIcon(QIcon(":/Icons/list-view.png"));
 
@@ -118,7 +132,6 @@ void MainWindow::setupUi()
                 m_displayAsTree = false;
                 m_treeView->setVisible(m_displayAsTree);
                 m_tableView->setVisible(!m_displayAsTree);
-                m_filterLayout->insertSpacerItem(0, new QSpacerItem(15, 0, QSizePolicy::Fixed, QSizePolicy::Fixed));
             });
     connect(m_switchToTreeModeAction, &QAction::triggered, [this]()
             {
@@ -159,27 +172,28 @@ void MainWindow::setupUi()
     tableViewVerticalHeader->setDefaultSectionSize(24);
 
 
-    QWidget* paddingWidget = new QLabel();
-    paddingWidget->setStyleSheet("QWidget { background-color : cyan; color : blue; }");
-    paddingWidget->setMaximumWidth(10);
+    //    QWidget* paddingWidget = new QLabel();
+    //    paddingWidget->setStyleSheet("QWidget { background-color : cyan; color : blue; }");
+    //    paddingWidget->setMaximumWidth(10);
 
-    m_filterLayout->setSpacing(1);
-    //filterLayout->setSizeConstraint(QLayout::SetMaximumSize);
-    for (int i = 0; i < m_tableViewModel->columnCount() - 1; i++) {
-        QWidget* filteringWidget = createFilterWidgetForColumn(i);
-        if (filteringWidget != nullptr)
-        {
-            m_filteringWidgets[i] = filteringWidget;
-            m_filterLayout->addWidget(filteringWidget, 0, Qt::AlignLeft);
-        }
-        else
-        {
-            QSpacerItem* spacer = new QSpacerItem(1, 25, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-            m_filterLayout->addSpacerItem(spacer);
-        }
-    }
-    m_filterLayout->addSpacerItem(new QSpacerItem(1, 25, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed));
-    //filterLayout->adds
+    m_filterByComboboxModel = new FilterByComboBoxModel();
+
+    m_filterByValues = new QList<QPair<int,QString>>();
+
+    m_filterByValues->append(QPair<int,QString>(-1,QCoreApplication::translate("MainWindow", "Everywhere", nullptr)));
+    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::ProcessName),QCoreApplication::translate("MainWindow", "By name", nullptr)));
+    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::PID),QCoreApplication::translate("MainWindow", "By PID", nullptr)));
+    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::ExecutablePath),QCoreApplication::translate("MainWindow", "By Execution path", nullptr)));
+
+    m_filterByComboboxModel->populate(m_filterByValues);
+    
+    m_filterComboBox = new QComboBox();
+    m_filterComboBox->setModel(m_filterByComboboxModel);
+
+    m_filterLineEdit = createFilterWidget();
+    m_filterLayout->setSpacing(5);
+    m_filterLayout->addWidget(m_filterLineEdit, 3);
+    m_filterLayout->addWidget(m_filterComboBox, 1);
     m_contextMenu = new QMenu();
     auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
     auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
@@ -224,48 +238,29 @@ void MainWindow::setupUi()
 
 void MainWindow::headerResized(int index, int old, int news)
 {
-    if (m_filteringWidgets.contains(index))
-    m_filteringWidgets[index]->setFixedWidth(news);
-//    for(auto& [columnPosition, widget]: m_filteringWidgets)
-//    {
-//        auto section = m_tableView->horizontalHeader()->sectionSize(columnPosition);
-//        widget->setFixedWidth(section);
-//    }
-//    QMainWindow::resizeEvent(event);
-}
-QWidget* MainWindow::createFilterWidgetForColumn(int i)
-{
-    switch (i) {
-    // пример текстового поля
-    case 0:
-    case 1:
-    case 4:
-    {
-        auto widget = new QLineEdit();
-        //widget->setValidator(new QRegExpValidator(QRegExp("[A-Za-z]{0,255}")));
-        connect(widget, &QLineEdit::textChanged,[=](const QString & text)
-                {
-                    if (m_displayAsTree)
-                    {
-                        m_processTreeProxyModel->setSearchText(text);
-                    }
-                    else
-                    {
-                        m_processTableProxyModel->setSearchText(text, i);
-                    }
-                });
 
-        //widget->setMaximumWidth(m_tableView->horizontalHeader()->sectionSize(i));
-        //widget->setMinimumWidth(m_tableView->horizontalHeader()->sectionSize(i));
-        return widget;
-    }
-    default:{
-        return nullptr;
-        auto lbl = new QLabel();
-        lbl->setStyleSheet("QLabel { background-color : red; color : blue; }");
-        return lbl;
-    }
-    }
+}
+QLineEdit* MainWindow::createFilterWidget()
+{
+    QLineEdit* widget = new QLineEdit();
+    widget->setPlaceholderText(tr("Search"));
+    //widget->setValidator(new QRegExpValidator(QRegExp("[A-Za-z]{0,255}")));
+    connect(widget, &QLineEdit::textChanged,[=](const QString & text)
+            {
+                if (m_displayAsTree)
+                {
+                    auto currentIndex{m_filterComboBox->currentIndex()};
+                    auto filterBy = m_filterByValues->at(currentIndex).first;
+                    m_processTreeProxyModel->setSearchText(text, filterBy);
+                }
+                else
+                {
+                    auto currentIndex{m_filterComboBox->currentIndex()};
+                    auto filterBy = m_filterByValues->at(currentIndex).first;
+                    m_processTableProxyModel->setSearchText(text,filterBy);
+                }
+            });
+    return widget;
 }
 void MainWindow::onPropertiesMenuActionClicked()
 {
@@ -275,7 +270,7 @@ void MainWindow::onPropertiesMenuActionClicked()
         for (const auto& proxyIndex: indexes)
         {
             auto index = m_processTreeProxyModel->mapToSource(proxyIndex);
-            if (index.column() == 0)
+            if (index.isValid() && index.column() == 0)
             {
                 auto item = m_treeViewModel->getItemByIndex(index);
                 ProcessProperties model;
@@ -294,7 +289,7 @@ void MainWindow::onPropertiesMenuActionClicked()
         for (const auto& proxyIndex: indexes)
         {
             auto index = m_processTableProxyModel->mapToSource(proxyIndex);
-            if (index.column() == 0)
+            if (index.isValid() && index.column() == 0)
             {
                 auto item = m_tableViewModel->getChildAtRow(index.row());
                 ProcessProperties model;
@@ -316,7 +311,7 @@ void MainWindow::onKillProcessMenuActionClicked()
         for (const auto& proxyIndex: indexes)
         {
             auto index = m_processTreeProxyModel->mapToSource(proxyIndex);
-            if (index.column() == 0)
+            if (index.isValid() && index.column() == 0)
             {
                 auto item = m_treeViewModel->getItemByIndex(index);
                 qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();
@@ -330,7 +325,7 @@ void MainWindow::onKillProcessMenuActionClicked()
         for (const auto& proxyIndex: indexes)
         {
             auto index = m_processTableProxyModel->mapToSource(proxyIndex);
-            if (index.column() == 0)
+            if (index.isValid() && index.column() == 0)
             {
                 auto item = m_tableViewModel->getChildAtRow(index.row());
                 qDebug() << item->getName() << "Killing process" << item->getId() << item->getName();

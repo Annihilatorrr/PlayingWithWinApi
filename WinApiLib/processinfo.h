@@ -32,26 +32,25 @@ struct ExtendedInfo
 };
 struct ProcessInfo
 {
-    ProcessInfo() :id{}, parentProcessId{}
+    ProcessInfo() : id{}, parentProcessId{}, sessionId{}, extendedInfo{}, windowsIs32Bit{}, processIs32Bit{},
+                    perfData{}
     {
-	    
     }
+
     ProcessInfo(DWORD id, std::wstring name, DWORD sessionId):
-    id(id),
-    parentProcessId{},
-	name(std::move(name)),
-    sessionId(sessionId)
+	    id(id),
+	    parentProcessId{},
+	    name(std::move(name)),
+        sessionId(sessionId), extendedInfo{}, windowsIs32Bit{}, processIs32Bit{}, perfData{}
     {
-	    
     }
 
     ProcessInfo(DWORD id, std::wstring name, DWORD parentId, DWORD sessionId):
-        id(id),
-        parentProcessId{parentId},
-        name(std::move(name)),
-        sessionId(sessionId)
+	    id(id),
+	    parentProcessId{parentId},
+	    name(std::move(name)),
+	    sessionId(sessionId), extendedInfo{}, windowsIs32Bit{}, processIs32Bit{}, perfData{}
     {
-
     }
 
     DWORD id;     // process id

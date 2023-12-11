@@ -2,20 +2,27 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QtWidgets/QPushButton>
-#include <QMenuBar>
-#include <QStatusBar>
-#include <QFutureWatcher>
-#include <QCoreApplication>
-#include <QHBoxLayout>
-#include <QtWidgets/QTreeView>
-#include <QtWidgets/QLineEdit>
-#include <QtWidgets/QTableView>
-#include "processtreemodel.h"
-#include "processtablefiltermodel.h"
-#include "processtreefiltermodel.h"
-#include "processtablemodel.h"
-#include "iprocessservice.h"
+#include <QFuture>
+#include "processinfo.h"
+
+
+
+class QTreeView;
+
+class ProcessTreeFilterModel;
+
+class QTableView;
+class QHBoxLayout;
+class QLineEdit;
+class ProcessTreeModel;
+class FilterByComboBoxModel;
+class QComboBox;
+class ProcessTableModel;
+class ProcessTableFilterModel;
+namespace WA
+{
+    class IWinProcessService;
+}
 
 class MainWindow : public QMainWindow
 {
@@ -36,10 +43,13 @@ class MainWindow : public QMainWindow
     ProcessTableFilterModel* m_processTableProxyModel;
     ProcessTreeModel* m_treeViewModel;
     ProcessTableModel* m_tableViewModel;
+    FilterByComboBoxModel* m_filterByComboboxModel;
     QAction* m_switchToTableModeAction;
     QAction* m_switchToTreeModeAction;
-    std::map<int, QWidget*> m_filteringWidgets;
+    QLineEdit* m_filterLineEdit;
     QHBoxLayout* m_filterLayout;
+    QComboBox* m_filterComboBox;
+    QList<QPair<int,QString>>* m_filterByValues;
 public:
     MainWindow(WA::IWinProcessService* processService, QWidget *parent = nullptr);
     std::map<unsigned int, ProcessInfo> getProcesses();
@@ -51,7 +61,7 @@ public:
     void OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher);
     void onKillProcessMenuActionClicked();
     void onPropertiesMenuActionClicked();
-    QWidget* createFilterWidgetForColumn(int i);
+    QLineEdit* createFilterWidget();
     void headerResized(int index, int old, int news);
     void configureTableHorizontalHeader();
 

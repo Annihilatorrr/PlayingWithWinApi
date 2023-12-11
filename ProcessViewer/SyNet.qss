@@ -35,7 +35,6 @@ QLabel
 	background-color: transparent;
 	color: #c2c7d5;
 	font-size: 13px;
-
 }
 
 
@@ -383,7 +382,6 @@ QScrollBar:horizontal
     height: 8px;
     margin: 0px;
     padding: 0px;
-
 }
 
 
@@ -435,4 +433,43 @@ QScrollBar::sub-page:vertical
 
 QToolButton::hover {
     background-color: #bcbdbb;
+}
+
+QComboBox
+{
+    background-color: #c2c7d5;
+    color: #000; /*font color of selected item*/
+    font-weight: bold;
+    border: none;
+    border-style:none;
+    border-radius: 2px;
+    padding: 3px;
+    min-width: 6em;
+}
+
+QComboBox::drop-down /*arrow*/
+{
+    width: 0px;
+    height: 0px;
+    border: 0px;
+}
+
+QComboBox QAbstractItemView {
+    border: 0px solid orange;
+    background-color: #c2c7d5;
+    color:#000;
+    outline: 0px;
+}
+
+QComboBox QAbstractItemView::item:!selected
+{
+    height:20px;
+    color:black;
+}
+
+
+QComboBox QAbstractItemView::item:selected
+{
+    background-color: green;
+    color:black;
 }

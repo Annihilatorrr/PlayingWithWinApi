@@ -5,12 +5,18 @@ project(ProcessViewer VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-set(BUILDMODE Debug)
+set(BUILDMODE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Widgets LinguistTools Concurrent)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Widgets LinguistTools)
+
+
+if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+    enable_language("RC")
+    set (WIN32_RESOURCES ${CMAKE_CURRENT_SOURCE_DIR}/app.rc)
+endif()
 
 set(TS_FILES ProcessViewer_en_US.ts ProcessViewer_ru_RU.ts)
 
@@ -42,10 +48,12 @@ add_custom_target(lupdate_target
     COMMENT "Running lupdate"
 )
 
+message(Resources ${PROJECT_SOURCES})
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     message("Creating executable")
     qt_add_executable(ProcessViewer
         ${QM_FILES}
+        ${WIN32_RESOURCES}
         MANUAL_FINALIZATION
         ${PROJECT_SOURCES}
         fakeprocessservice.h fakeprocessservice.cpp
@@ -58,6 +66,7 @@ if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)
         processtreeviewitemdelegate.h processtreeviewitemdelegate.cpp
         processtablefiltermodel.h processtablefiltermodel.cpp
         processtreefiltermodel.h processtreefiltermodel.cpp
+        filterbycomboboxmodel.h filterbycomboboxmodel.cpp
     )
     add_dependencies(ProcessViewer lupdate_target)
     # Create custom target for lrelease
@@ -112,7 +121,7 @@ include_directories(d:/projects/PlayingWithWinApi/WinApiLib)
 #  IMPORTED_LOCATION "../WinApiLib/x64/release/WinApiLib.lib"
 #  INTERFACE_INCLUDE_DIRECTORIES "../WinApiLib"
 #)
-target_link_libraries(ProcessViewer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets "d:\\projects\\PlayingWithWinApi\\x64\\${BUILDMODE}\\WinApiLib.lib")
+target_link_libraries(ProcessViewer PRIVATE Qt${QT_VERSION_MAJOR}::Widgets "${CMAKE_SOURCE_DIR}\\..\\x64\\${BUILDMODE}\\WinApiLib.lib")
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
 # If you are developing for iOS or macOS you should consider setting an
