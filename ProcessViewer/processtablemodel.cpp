@@ -59,19 +59,19 @@ QVariant ProcessTableModel::data(const QModelIndex& index, int role) const
             }
         }
     }
-    else if (role == Qt::DecorationRole)
-    {
-        if ((Properties)index.column() == Properties::ProcessName)
-        {
-            ProcessTreeItem *item = children[index.row()];
-            if (!item->getIcon().isNull())
-            {
-                qDebug() << "Returning icon for" << item->getId() << item->getName();
-                return item->getIcon();
-            }
-        }
-        return QVariant();
-    }
+//    else if (role == Qt::DecorationRole)
+//    {
+//        if ((Properties)index.column() == Properties::ProcessName)
+//        {
+//            ProcessTreeItem *item = children[index.row()];
+//            if (!item->getIcon().isNull())
+//            {
+//                qDebug() << "Returning icon for" << item->getId() << item->getName();
+//                return item->getIcon();
+//            }
+//        }
+//        return QVariant();
+//    }
     return QVariant();
 }
 
@@ -126,20 +126,20 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             newItem->setPercentage(pi.perfData.percentProcessorTime);
             newItem->setFrequency(pi.perfData.frequency100Ns);
 
-            if (!pi.executablePath.empty())
-            {
-                SHFILEINFO shfi;
-                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
-                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
-                if (shfi.hIcon != nullptr)
-                {
-                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
-                    QImage image(QImage::fromHICON(shfi.hIcon));
-                    QPixmap processIcon{QPixmap::fromImage(image)};
-                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
-                    newItem->setIcon(image);
-                }
-            }
+//            if (!pi.executablePath.empty())
+//            {
+//                SHFILEINFO shfi;
+//                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
+//                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
+//                if (shfi.hIcon != nullptr)
+//                {
+//                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
+//                    QImage image(QImage::fromHICON(shfi.hIcon));
+//                    QPixmap processIcon{QPixmap::fromImage(image)};
+//                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
+//                    newItem->setIcon(image);
+//                }
+//            }
 
             m_rootItem->addChild(newItem);
             addItem(newItem, QModelIndex());

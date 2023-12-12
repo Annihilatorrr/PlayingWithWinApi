@@ -42,20 +42,20 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
             auto newItem = new ProcessTreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
             newItem->setDescription(QString::fromStdWString(pi.description));
 
-            if (!pi.executablePath.empty())
-            {
-                SHFILEINFO shfi;
-                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
-                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
-                if (shfi.hIcon != nullptr)
-                {
-                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
-                    QImage image(QImage::fromHICON(shfi.hIcon));
-                    QPixmap processIcon{QPixmap::fromImage(image)};
-                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
-                    newItem->setIcon(image);
-                }
-            }
+//            if (!pi.executablePath.empty())
+//            {
+//                SHFILEINFO shfi;
+//                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
+//                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
+//                if (shfi.hIcon != nullptr)
+//                {
+//                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
+//                    QImage image(QImage::fromHICON(shfi.hIcon));
+//                    QPixmap processIcon{QPixmap::fromImage(image)};
+//                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
+//                    newItem->setIcon(image);
+//                }
+//            }
             newItem->setExecutablePath(QString::fromStdWString(pi.executablePath));
             newItem->setPercentage(pi.perfData.percentProcessorTime);
             newItem->setFrequency(pi.perfData.frequency100Ns);
@@ -190,18 +190,18 @@ QVariant ProcessTreeModel::data(const QModelIndex &index, int role) const
     {
         return QVariant();
     }
-        case Qt::DecorationRole:
-    {
-        if ((Properties)index.column() == Properties::ProcessName)
-        {
-            ProcessTreeItem *item = getItemByIndex(index);
-            if (!item->getIcon().isNull())
-            {
-                return item->getIcon();
-            }
-        }
-        return QVariant();
-    }
+//        case Qt::DecorationRole:
+//    {
+//        if ((Properties)index.column() == Properties::ProcessName)
+//        {
+//            ProcessTreeItem *item = getItemByIndex(index);
+//            if (!item->getIcon().isNull())
+//            {
+//                return item->getIcon();
+//            }
+//        }
+//        return QVariant();
+//    }
     case Qt::DisplayRole:
     {
         ProcessTreeItem *item = getItemByIndex(index);

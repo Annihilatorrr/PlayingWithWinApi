@@ -113,8 +113,10 @@ void MainWindow::configureTreeView()
 void MainWindow::setupUi()
 {
     setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
-    resize(800, 600);
-
+    setFixedSize(1024, 768);
+    setMaximumSize(1024, 768);
+    setMinimumSize(1024, 768);
+    setWindowFlags(windowFlags()| Qt::MSWindowsFixedSizeDialogHint);
     m_treeView = new QTreeView();
     m_tableView = new QTableView();
     m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
@@ -232,7 +234,7 @@ void MainWindow::setupUi()
 
     connectSignalsAndSlots();
 
-    m_processInfoTimer->start(5000);
+    m_processInfoTimer->start(2000);
 } // setupUi
 
 QLineEdit* MainWindow::createFilterWidget()
