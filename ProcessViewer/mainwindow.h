@@ -62,7 +62,6 @@ public:
     void onKillProcessMenuActionClicked();
     void onPropertiesMenuActionClicked();
     QLineEdit* createFilterWidget();
-    void headerResized(int index, int old, int news);
     void configureTableHorizontalHeader();
 
     void configureTreeViewHeader();

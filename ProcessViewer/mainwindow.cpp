@@ -215,10 +215,10 @@ void MainWindow::setupUi()
 
     m_tableView->setVisible(!m_displayAsTree);
     setCentralWidget(m_centralwidget);
-    m_menuBar = new QMenuBar(this);
+    m_menuBar = new QMenuBar();
     m_menuBar->setObjectName("menubar");
     m_menuBar->setGeometry(QRect(0, 0, 800, 22));
-    setMenuBar(m_menuBar);
+    //setMenuBar(m_menuBar);
     m_statusBar = new QStatusBar(this);
     m_statusBar->setObjectName("statusbar");
     setStatusBar(m_statusBar);
@@ -230,16 +230,11 @@ void MainWindow::setupUi()
     m_processInfoTimer = new QTimer;
     m_processInfoTimer->setSingleShot(false);
 
-    connect(m_tableView->horizontalHeader(), &QHeaderView::sectionResized, this, &MainWindow::headerResized);
     connectSignalsAndSlots();
 
-    m_processInfoTimer->start(1000);
+    m_processInfoTimer->start(5000);
 } // setupUi
 
-void MainWindow::headerResized(int index, int old, int news)
-{
-
-}
 QLineEdit* MainWindow::createFilterWidget()
 {
     QLineEdit* widget = new QLineEdit();

@@ -49,7 +49,7 @@
         <translation type="unfinished">Properties...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="246"/>
+        <location filename="mainwindow.cpp" line="241"/>
         <source>Search</source>
         <translation type="unfinished"></translation>
     </message>

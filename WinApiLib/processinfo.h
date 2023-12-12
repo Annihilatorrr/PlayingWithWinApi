@@ -66,5 +66,6 @@ struct ProcessInfo
     USHORT processIs32Bit;
     std::wstring description;
     PerfRawData perfData;
+    HICON hIcon;
 };
 

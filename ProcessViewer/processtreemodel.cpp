@@ -39,11 +39,27 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
         }
         else
         {
-            itemsTree[pi.id] = new ProcessTreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
-            itemsTree[pi.id]->setDescription(QString::fromStdWString(pi.description));
-            itemsTree[pi.id]->setExecutablePath(QString::fromStdWString(pi.executablePath));
-            itemsTree[pi.id]->setPercentage(pi.perfData.percentProcessorTime);
-            itemsTree[pi.id]->setFrequency(pi.perfData.frequency100Ns);
+            auto newItem = new ProcessTreeItem(pi.id, QString::fromStdWString(pi.name), pi.extendedInfo.memoryInfo.WorkingSetSize, pi.extendedInfo.memoryInfo.PageFileUsage);
+            newItem->setDescription(QString::fromStdWString(pi.description));
+
+            if (!pi.executablePath.empty())
+            {
+                SHFILEINFO shfi;
+                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
+                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
+                if (shfi.hIcon != nullptr)
+                {
+                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
+                    QImage image(QImage::fromHICON(shfi.hIcon));
+                    QPixmap processIcon{QPixmap::fromImage(image)};
+                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
+                    newItem->setIcon(image);
+                }
+            }
+            newItem->setExecutablePath(QString::fromStdWString(pi.executablePath));
+            newItem->setPercentage(pi.perfData.percentProcessorTime);
+            newItem->setFrequency(pi.perfData.frequency100Ns);
+            itemsTree[pi.id] = newItem;
         }
     }
     //emit layoutAboutToBeChanged();
@@ -108,7 +124,6 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
             //qDebug() << "(";
             for(auto&& childId: itemsTreeIt->second->getIdsWithChildren())
             {
-
                 outdatedItemsIds.insert({childId, itemsTree.at(childId)});
             }
             //qDebug() << ")";
@@ -154,7 +169,9 @@ QVariant ProcessTreeModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    if (role == Qt::ToolTipRole)
+    switch (role)
+    {
+    case  Qt::ToolTipRole:
     {
         ProcessTreeItem *item = getItemByIndex(index);
 
@@ -169,36 +186,51 @@ QVariant ProcessTreeModel::data(const QModelIndex &index, int role) const
             return {};
         }
     }
-    if ((role != Qt::DisplayRole))
+    default:
     {
         return QVariant();
     }
-    ProcessTreeItem *item = getItemByIndex(index);
+        case Qt::DecorationRole:
+    {
+        if ((Properties)index.column() == Properties::ProcessName)
+        {
+            ProcessTreeItem *item = getItemByIndex(index);
+            if (!item->getIcon().isNull())
+            {
+                return item->getIcon();
+            }
+        }
+        return QVariant();
+    }
+    case Qt::DisplayRole:
+    {
+        ProcessTreeItem *item = getItemByIndex(index);
 
-    QLocale aEnglish;
-    switch((Properties)index.column())
-    {
-    case Properties::ProcessName:
-        return item->getName();
-    case Properties::PID:
-        return item->getId();
-    case Properties::PrivateBytes:
-    {
-        return QString("%L1 K").arg(item->getPageFileUsage());
+        QLocale aEnglish;
+        switch((Properties)index.column())
+        {
+        case Properties::ProcessName:
+            return item->getName();
+        case Properties::PID:
+            return item->getId();
+        case Properties::PrivateBytes:
+        {
+            return QString("%L1 K").arg(item->getPageFileUsage());
+        }
+        case Properties::WorkingSet:
+        {
+            return QString("%L1 K").arg(item->getWorkingSetSize());
+        }
+        case Properties::ExecutablePath:
+            return item->getExecutablePath();
+        case Properties::CpuUsage:
+            return QString("%L1 %").arg(item->getCpuUsage());
+        default:
+            return {};
+        }
     }
-    case Properties::WorkingSet:
-    {
-        return QString("%L1 K").arg(item->getWorkingSetSize());
-    }
-    case Properties::ExecutablePath:
-        return item->getExecutablePath();
-    case Properties::CpuUsage:
-        return QString("%L1 %").arg(item->getCpuUsage());
-    default:
-        return {};
     }
 }
-
 Qt::ItemFlags ProcessTreeModel::flags(const QModelIndex &index) const
 {
     if (!index.isValid())

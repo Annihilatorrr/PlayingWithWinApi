@@ -19,7 +19,7 @@ class ProcessTreeItem
     quint64 m_frequency;
     quint64 m_percentage;
     double m_cpuUsage;
-
+    QImage m_icon;
     bool m_isDirty;
 public:
     explicit ProcessTreeItem(unsigned int id, const QString &name, SIZE_T workingSetSize, SIZE_T pageFileUsage, ProcessTreeItem *parent = nullptr);
@@ -34,16 +34,20 @@ public:
     QString getName() const { return m_name; }
     void setName(QString name)
     {
-        m_isDirty = m_isDirty || (m_name != name);
         m_name = name;
     }
 
     QString getDescription() const { return m_description; }
     void setDescription(QString description)
     {
-        m_isDirty = m_isDirty ||  (m_description != m_description);
         m_description = description;
     }
+
+    void setIcon(const QImage& icon)
+    {
+        m_icon = icon;
+    }
+    QImage getIcon() const {return m_icon;}
 
     QString getExecutablePath() const { return m_executablePath; }
     void setExecutablePath(QString executablePath) {m_executablePath = executablePath; }

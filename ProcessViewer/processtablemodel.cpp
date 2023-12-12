@@ -59,6 +59,19 @@ QVariant ProcessTableModel::data(const QModelIndex& index, int role) const
             }
         }
     }
+    else if (role == Qt::DecorationRole)
+    {
+        if ((Properties)index.column() == Properties::ProcessName)
+        {
+            ProcessTreeItem *item = children[index.row()];
+            if (!item->getIcon().isNull())
+            {
+                qDebug() << "Returning icon for" << item->getId() << item->getName();
+                return item->getIcon();
+            }
+        }
+        return QVariant();
+    }
     return QVariant();
 }
 
@@ -112,6 +125,22 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             newItem->setExecutablePath(QString::fromStdWString(pi.executablePath));
             newItem->setPercentage(pi.perfData.percentProcessorTime);
             newItem->setFrequency(pi.perfData.frequency100Ns);
+
+            if (!pi.executablePath.empty())
+            {
+                SHFILEINFO shfi;
+                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
+                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
+                if (shfi.hIcon != nullptr)
+                {
+                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
+                    QImage image(QImage::fromHICON(shfi.hIcon));
+                    QPixmap processIcon{QPixmap::fromImage(image)};
+                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
+                    newItem->setIcon(image);
+                }
+            }
+
             m_rootItem->addChild(newItem);
             addItem(newItem, QModelIndex());
         }
@@ -121,7 +150,6 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             existingItem.setName(QString::fromStdWString(pi.name));
             existingItem.setWorkingSetSize(pi.extendedInfo.memoryInfo.WorkingSetSize);
             existingItem.setPageFileUsage(pi.extendedInfo.memoryInfo.PageFileUsage);
-
             auto time = pi.perfData.frequency100Ns - existingItem.getFrequency();
             if (time != 0)
             {
@@ -208,7 +236,7 @@ QModelIndex ProcessTableModel::index(int row, int column, const QModelIndex &par
         {
             QPersistentModelIndex persistentIndex(index);
             _persistentIndices.insert({childItem->getId(), persistentIndex});
-            qDebug() << "Creating persistent index for ID = " << childItem->getId() << childItem->getName() ;
+            //qDebug() << "Creating persistent index for ID = " << childItem->getId() << childItem->getName() ;
         }
         return index;
     }

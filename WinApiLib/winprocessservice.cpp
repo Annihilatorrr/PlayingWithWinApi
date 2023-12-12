@@ -5,6 +5,7 @@
 #include <set>
 
 #include "comhelper.h"
+#include <shellapi.h>
 #include "perfrawdata.h"
 
 std::map<unsigned int, PerfRawData> WA::WinProcessService::getProcessUsageInfo(IWbemServices* pServices)
@@ -100,6 +101,21 @@ std::map<unsigned int, ProcessInfo> WA::WinProcessService::getProcessTreeByCom(I
 		pi.commandLine = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"CommandLine"));
 		pi.executablePath = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"ExecutablePath"));
 
+		if (!pi.executablePath.empty())
+		{
+			SHFILEINFO shfi;
+			SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
+				sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
+
+			if (shfi.hIcon != nullptr)
+			{
+				pi.hIcon = shfi.hIcon;
+			}
+		}
+		else
+		{
+			pi.hIcon = nullptr;
+		}
 		auto wssString = ComHelper::readVariant<std::wstring>(pclsObj, std::wstring(L"WorkingSetSize"));
 		const auto workingSetSize = std::stoll(wssString);
 		pi.extendedInfo.memoryInfo.WorkingSetSize = workingSetSize >> 10;
@@ -137,19 +153,12 @@ ExtendedInfo WA::WinProcessService::getExtendedProcessInfo(DWORD processID) cons
 {
 	PROCESS_MEMORY_COUNTERS pmc;
 
-	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
-		PROCESS_VM_READ,
-		FALSE, processID);
+	const HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION |
+	                                    PROCESS_VM_READ,
+	                                    FALSE, processID);
 
 	if (nullptr == hProcess)
 	{
-		if (processID == 172)
-		{
-			size_t inSz;
-			size_t outSz;
-			GetProcessWorkingSetSize(hProcess, &inSz, &outSz);
-			int r{};
-		}
 		return {};
 	}
 
