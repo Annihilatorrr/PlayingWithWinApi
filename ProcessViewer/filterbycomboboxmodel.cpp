@@ -3,12 +3,12 @@
 FilterByComboBoxModel::FilterByComboBoxModel(QObject *parent)
     :QAbstractListModel(parent)
 {
-    m_values = new QList<QPair<int,QString>>();
+
 }
 
 int FilterByComboBoxModel::rowCount(const QModelIndex &) const
 {
-    return m_values->count();
+    return m_values != nullptr? m_values->count():0;
 }
 
 QVariant FilterByComboBoxModel::data( const QModelIndex &index, int role ) const
@@ -18,16 +18,12 @@ QVariant FilterByComboBoxModel::data( const QModelIndex &index, int role ) const
     switch ( role )
     {
     case Qt::DisplayRole: //string
-    {
         value = this->m_values->value(index.row()).second;
-    }
-    break;
+        break;
 
     case Qt::UserRole: //data
-    {
         value = this->m_values->value(index.row()).first;
-    }
-    break;
+        break;
 
     default:
         break;
@@ -38,8 +34,8 @@ QVariant FilterByComboBoxModel::data( const QModelIndex &index, int role ) const
 
 void FilterByComboBoxModel::populate(QList<QPair<int,QString>> *newValues)
 {
+    this->m_values = newValues;
     int idx = m_values->count();
     this->beginInsertRows(QModelIndex(), idx, idx);
-    this->m_values = newValues;
     endInsertRows();
 }

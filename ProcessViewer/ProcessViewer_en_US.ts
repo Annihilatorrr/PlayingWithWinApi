@@ -19,37 +19,37 @@
         <translation type="unfinished">Tree mode</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="185"/>
+        <location filename="mainwindow.cpp" line="183"/>
         <source>Everywhere</source>
         <translation type="unfinished">Everywhere</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="186"/>
+        <location filename="mainwindow.cpp" line="184"/>
         <source>ByName</source>
         <translation type="unfinished">By name</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="187"/>
+        <location filename="mainwindow.cpp" line="185"/>
         <source>ByPid</source>
         <translation type="unfinished">By process Id</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="188"/>
+        <location filename="mainwindow.cpp" line="186"/>
         <source>ByExecutionPath</source>
         <translation type="unfinished">By execution path</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="200"/>
+        <location filename="mainwindow.cpp" line="198"/>
         <source>KillProcess</source>
         <translation type="unfinished">Kill process</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="201"/>
+        <location filename="mainwindow.cpp" line="199"/>
         <source>Properties...</source>
         <translation type="unfinished">Properties...</translation>
     </message>
     <message>
-        <location filename="mainwindow.cpp" line="243"/>
+        <location filename="mainwindow.cpp" line="241"/>
         <source>Search</source>
         <translation type="unfinished">Search</translation>
     </message>
@@ -87,7 +87,7 @@
         <translation type="unfinished">CPU usage</translation>
     </message>
     <message>
-        <location filename="processtablemodel.cpp" line="191"/>
+        <location filename="processtablemodel.cpp" line="197"/>
         <source>Proccess</source>
         <translation type="unfinished"></translation>
     </message>

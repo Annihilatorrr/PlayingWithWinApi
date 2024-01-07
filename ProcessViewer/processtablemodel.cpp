@@ -170,7 +170,13 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
                 auto cpu = pi.perfData.percentProcessorTime - existingItem.getPercentage();
                 double ratioPerCpuInPercents{double(cpu) / time/m_processorCount*100};
                 double cpuUsage{std::roundf( ratioPerCpuInPercents*100)/100.0};
+
+                if (existingItem.getId() != 0)
+                {
+                    itemsTree[0]->setCpuUsage(itemsTree[0]->getCpuUsage() - cpuUsage);
+                }
                 existingItem.setCpuUsage(cpuUsage);
+
             }
             existingItem.setPercentage(pi.perfData.percentProcessorTime);
             existingItem.setFrequency(pi.perfData.frequency100Ns);

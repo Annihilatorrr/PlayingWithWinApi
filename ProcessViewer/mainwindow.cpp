@@ -170,9 +170,7 @@ void MainWindow::setupUi()
     m_processTableProxyModel->setSourceModel(m_tableViewModel);
 
     QHeaderView* tableViewVerticalHeader = m_tableView->verticalHeader();
-
     tableViewVerticalHeader->setDefaultSectionSize(24);
-
 
     //    QWidget* paddingWidget = new QLabel();
     //    paddingWidget->setStyleSheet("QWidget { background-color : cyan; color : blue; }");
