@@ -126,12 +126,12 @@ QCheckBox::indicator:disabled
 /*-----QLineEdit-----*/
 QLineEdit
 {
-	background-color: #c2c7d5;
-	color: #000;
-	font-weight: bold;
-	border: none;
-	border-radius: 2px;
-	padding: 3px;
+        background-color: #c2c7d5;
+        color: #000;
+        font-weight: bold;
+        border: none;
+        border-radius: 2px;
+        padding: 3px;
 
 }
 
@@ -197,7 +197,6 @@ QTreeView
 	background-color: #252525;
 	show-decoration-selected: 0;
 	color: #c2c8d7;
-
 }
 
 
@@ -213,7 +212,6 @@ QTreeView::item:hover
 {
 	background-color: #bcbdbb;
 	color: #000;
-
 }
 
 
@@ -221,7 +219,6 @@ QTreeView::item:selected
 {
 	background-color: #ff3333;
 	color: #000;
-
 }
 
 
@@ -252,7 +249,7 @@ QTableView,
 QMenu
 {
     background-color: #252525;
-	border: 1px solid gray;
+    border: 1px solid gray;
     color: #f0f0f0;
     gridline-color: gray;
     outline : 0;

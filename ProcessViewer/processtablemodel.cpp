@@ -23,15 +23,32 @@ void ProcessTableModel::addItem(ProcessTreeItem* item, const QModelIndex& parent
 
 QVariant ProcessTableModel::data(const QModelIndex& index, int role) const
 {
-    if (!index.isValid()) {
+    if (!index.isValid())
+    {
         return QVariant();
     }
 
-    if (index.row() >= itemsTree.size()) {
+    if (index.row() >= itemsTree.size())
+    {
         return QVariant();
     }
 
-    if (role == Qt::DisplayRole || role == Qt::EditRole)
+    switch (role)
+    {
+    case  Qt::ToolTipRole:
+    {
+        const ProcessTreeItem *item= children[index.row()];
+        switch((Properties)index.column())
+        {
+        case Properties::ProcessName:
+            return item->getName();
+        case Properties::ExecutablePath:
+            return item->getExecutablePath();
+        default:
+            return QVariant();
+        }
+    }
+    case Qt::DisplayRole:
     {
         const ProcessTreeItem *item= children[index.row()];
         if (item != nullptr)
@@ -55,23 +72,20 @@ QVariant ProcessTableModel::data(const QModelIndex& index, int role) const
             case Properties::CpuUsage:
                 return QString("%L1 %").arg(item->getCpuUsage());
             default:
-                return {};
+                return QVariant();
             }
         }
     }
-//    else if (role == Qt::DecorationRole)
-//    {
-//        if ((Properties)index.column() == Properties::ProcessName)
-//        {
-//            ProcessTreeItem *item = children[index.row()];
-//            if (!item->getIcon().isNull())
-//            {
-//                qDebug() << "Returning icon for" << item->getId() << item->getName();
-//                return item->getIcon();
-//            }
-//        }
-//        return QVariant();
-//    }
+    case  Qt::DecorationRole:
+    {
+        if (index.column() != 0)
+        {
+            return QVariant();
+        }
+        const ProcessTreeItem *item = children[index.row()];
+        return item->getIcon();
+    }
+    }
     return QVariant();
 }
 
@@ -101,17 +115,17 @@ bool ProcessTableModel::updateRow(SIZE_T processId)
     return false;
 }
 
-ProcessTreeItem* ProcessTableModel::getItemByIndex(const QModelIndex &index) const
-{
-    if (index.isValid())
-    {
-        return static_cast<ProcessTreeItem*>(index.internalPointer());
-    }
-    else
-    {
-        return m_rootItem;
-    }
-}
+// ProcessTreeItem* ProcessTableModel::getItemByIndex(const QModelIndex &index) const
+// {
+//     if (index.isValid())
+//     {
+//         return static_cast<ProcessTreeItem*>(index.internalPointer());
+//     }
+//     else
+//     {
+//         return m_rootItem;
+//     }
+// }
 void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRecords)
 {
     //Create tree of processes. Item are being added or updated if already exist. Parents are not set here.
@@ -126,20 +140,20 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             newItem->setPercentage(pi.perfData.percentProcessorTime);
             newItem->setFrequency(pi.perfData.frequency100Ns);
 
-//            if (!pi.executablePath.empty())
-//            {
-//                SHFILEINFO shfi;
-//                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
-//                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
-//                if (shfi.hIcon != nullptr)
-//                {
-//                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
-//                    QImage image(QImage::fromHICON(shfi.hIcon));
-//                    QPixmap processIcon{QPixmap::fromImage(image)};
-//                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
-//                    newItem->setIcon(image);
-//                }
-//            }
+            if (!pi.executablePath.empty())
+            {
+                SHFILEINFO shfi;
+                SHGetFileInfo(pi.executablePath.c_str(), FILE_ATTRIBUTE_NORMAL, &shfi,
+                              sizeof(shfi), SHGFI_ICON | SHGFI_USEFILEATTRIBUTES| SHGFI_LARGEICON| SHGFI_SMALLICON);
+                if (shfi.hIcon != nullptr)
+                {
+                    qDebug() << "Setting icon for" << newItem->getId() << newItem->getName();
+                    QImage image(QImage::fromHICON(shfi.hIcon));
+                    QPixmap processIcon{QPixmap::fromImage(image)};
+                    auto scaledProcessIcon{processIcon.scaled(16, 16, Qt::KeepAspectRatio)};
+                    newItem->setIcon(image);
+                }
+            }
 
             m_rootItem->addChild(newItem);
             addItem(newItem, QModelIndex());
@@ -163,7 +177,6 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             if (itemsTree[processId]->isDirty())
             {
                 updateRow(processId);
-                //qDebug() << "Updated" << processId;
                 itemsTree[processId]->resetDirty();
             }
         }
@@ -196,7 +209,7 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
         }
         removeItem(id);
         qDebug() << "Record removed";
-
+        _persistentIndices.erase(id);
         itemsTree.erase(id);
         processItem->setReadyToDelete();
     }
@@ -207,7 +220,6 @@ void ProcessTableModel::load(std::map<unsigned int, ProcessInfo> &processInfoRec
             delete processItem;
         }
     }
-
 }
 
 void ProcessTableModel::removeItem(SIZE_T processId)
@@ -228,7 +240,7 @@ QModelIndex ProcessTableModel::index(int row, int column, const QModelIndex &par
 {
     if (hasIndex(row, column, parent))
     {
-        ProcessTreeItem *parentItem = getItemByIndex(parent);
+        const ProcessTreeItem *parentItem = getChildAtRow(parent.row());
         auto index = createIndex(row, column);
         ProcessTreeItem *childItem = parentItem->getChildAt(row);
         auto _persistentIndexIt = _persistentIndices.find(childItem->getId());
@@ -248,10 +260,7 @@ int ProcessTableModel::columnCount(const QModelIndex &parent) const
     return static_cast<int>(ProcessTableModel::Properties::END);
 }
 
-bool ProcessTableModel::insertRows(int row, int count, const QModelIndex &)
-{
-    return true;
-}
+
 Qt::ItemFlags ProcessTableModel::flags(const QModelIndex &index) const
 {
     Qt::ItemFlags theFlags = QAbstractTableModel::flags(index);
@@ -265,7 +274,8 @@ QVariant ProcessTableModel::headerData(int section, Qt::Orientation orientation,
                                        int role) const
 {
     if (orientation == Qt::Horizontal && role == Qt::DisplayRole)
+    {
         return PropertiesNames.at((ProcessTableModel::Properties)section);
-
+    }
     return QVariant();
 }

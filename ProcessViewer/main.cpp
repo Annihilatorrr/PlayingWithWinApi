@@ -3,8 +3,6 @@
 #include <QApplication>
 #include <QLocale>
 #include <QTranslator>
-#include "processservice.h"
-#include "fakeprocessservice.h"
 #include "iwinprocessservice.h"
 #include "winprocessservice.h"
 #include <QFile>
@@ -21,7 +19,7 @@ int main(int argc, char *argv[])
             break;
         }
     }
-
+    qDebug() << "Main thread " << QThread::currentThreadId();
     QFile styleSheetFile(":/mainstylesheet");
     styleSheetFile.open(QFile::ReadOnly);
     QString styleSheet = styleSheetFile.readAll();

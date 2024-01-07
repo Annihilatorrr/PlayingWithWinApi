@@ -4,13 +4,14 @@
 #include <QStandardItemModel>
 
 #include <process.h>
-#include <vector>
+#include <thread>
+#include <QApplication>
 #include "processinfo.h"
 class ProcessTreeItem;
 
 class ProcessTreeModel : public QAbstractItemModel
 {
-   // Q_OBJECT
+    // Q_OBJECT
 
     std::unordered_map<unsigned int, ProcessTreeItem*> itemsTree;
     unsigned int m_processorCount = std::thread::hardware_concurrency();
@@ -23,20 +24,20 @@ public:
         PrivateBytes,
         WorkingSet,
         ExecutablePath,
-//        Frequency = 5,
-//        Percent = 6,
+        //        Frequency = 5,
+        //        Percent = 6,
         CpuUsage,
         END
     };
 
     std::map<ProcessTreeModel::Properties, QString> PropertiesNames
         {
-        {ProcessTreeModel::Properties::ProcessName, "ProcessName"},
-        {ProcessTreeModel::Properties::PID, "PID"},
-        {ProcessTreeModel::Properties::PrivateBytes, "Private Bytes"},
-        {ProcessTreeModel::Properties::WorkingSet, "Working Set"},
-        {ProcessTreeModel::Properties::ExecutablePath, "ExecutablePath"},
-        {ProcessTreeModel::Properties::CpuUsage, "Cpu Usage"},
+         {ProcessTreeModel::Properties::ProcessName, QCoreApplication::translate("ProcessTreeModel", "ProcessName", nullptr)},
+         {ProcessTreeModel::Properties::PID, QCoreApplication::translate("ProcessTreeModel", "PID", nullptr)},
+         {ProcessTreeModel::Properties::PrivateBytes, QCoreApplication::translate("ProcessTreeModel", "PrivateBytes", nullptr)},
+         {ProcessTreeModel::Properties::WorkingSet, QCoreApplication::translate("ProcessTreeModel", "WorkingSet", nullptr)},
+         {ProcessTreeModel::Properties::ExecutablePath, QCoreApplication::translate("ProcessTreeModel", "ExecutablePath", nullptr)},
+         {ProcessTreeModel::Properties::CpuUsage, QCoreApplication::translate("ProcessTreeModel", "CpuUsage", nullptr)},
          };
 
     ProcessTreeModel(QObject *parent = 0);

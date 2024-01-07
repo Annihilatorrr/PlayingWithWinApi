@@ -80,25 +80,25 @@ void MainWindow::connectSignalsAndSlots()
 void MainWindow::configureTableHorizontalHeader()
 {
     auto tableHorizontalHeader = m_tableView->horizontalHeader();
-    tableHorizontalHeader->resizeSection(0, 170);
-    tableHorizontalHeader->resizeSection(1, 50);
-    tableHorizontalHeader->resizeSection(2, 100);
-    tableHorizontalHeader->resizeSection(3, 100);
-    tableHorizontalHeader->resizeSection(4, 200);
-    tableHorizontalHeader->resizeSection(5, 70);
+    // tableHorizontalHeader->resizeSection(0, 170);
+    // tableHorizontalHeader->resizeSection(1, 50);
+    // tableHorizontalHeader->resizeSection(2, 100);
+    // tableHorizontalHeader->resizeSection(3, 100);
+    // tableHorizontalHeader->resizeSection(4, 200);
+    // tableHorizontalHeader->resizeSection(5, 70);
     tableHorizontalHeader->setSectionsClickable(true);
 }
 
 void MainWindow::configureTreeViewHeader()
 {
     auto treeViewHeader = m_treeView->header();
-    treeViewHeader->setSectionsClickable(true);
-    treeViewHeader->resizeSection(0, 170);
-    treeViewHeader->resizeSection(1, 50);
-    treeViewHeader->resizeSection(2, 100);
-    treeViewHeader->resizeSection(3, 100);
-    treeViewHeader->resizeSection(4, 200);
-    treeViewHeader->resizeSection(5, 70);
+    // treeViewHeader->setSectionsClickable(true);
+    // treeViewHeader->resizeSection(0, 170);
+    // treeViewHeader->resizeSection(1, 50);
+    // treeViewHeader->resizeSection(2, 100);
+    // treeViewHeader->resizeSection(3, 100);
+    // treeViewHeader->resizeSection(4, 200);
+    // treeViewHeader->resizeSection(5, 70);
 }
 
 void MainWindow::configureTreeView()
@@ -113,17 +113,17 @@ void MainWindow::configureTreeView()
 void MainWindow::setupUi()
 {
     setWindowTitle(QCoreApplication::translate("MainWindow", "MainWindow", nullptr));
-    setFixedSize(1024, 768);
-    setMaximumSize(1024, 768);
+    //setFixedSize(1024, 768);
+    // setMaximumSize(1024, 768);
     setMinimumSize(1024, 768);
-    setWindowFlags(windowFlags()| Qt::MSWindowsFixedSizeDialogHint);
-    m_treeView = new QTreeView();
+    // setWindowFlags(windowFlags()| Qt::MSWindowsFixedSizeDialogHint);
+     m_treeView = new QTreeView();
     m_tableView = new QTableView();
     m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_switchToTableModeAction = new QAction();
     m_switchToTableModeAction->setIcon(QIcon(":/Icons/list-view.png"));
 
-    m_switchToTableModeAction->setToolTip(QCoreApplication::translate("MainWindow", "List mode", nullptr));
+    m_switchToTableModeAction->setToolTip(QCoreApplication::translate("MainWindow", "ListMode", nullptr));
 
     m_switchToTreeModeAction = new QAction();
     m_switchToTreeModeAction->setIcon(QIcon(":/Icons/tree-view.png"));
@@ -141,7 +141,7 @@ void MainWindow::setupUi()
                 m_treeView->setVisible(m_displayAsTree);
                 m_tableView->setVisible(!m_displayAsTree);
             });
-    m_switchToTreeModeAction->setToolTip(QCoreApplication::translate("MainWindow", "Tree mode", nullptr));
+    m_switchToTreeModeAction->setToolTip(QCoreApplication::translate("MainWindow", "TreeMode", nullptr));
 
     m_topToolbar = new QToolBar();
     m_topToolbar->setMovable(false);
@@ -183,9 +183,9 @@ void MainWindow::setupUi()
     m_filterByValues = new QList<QPair<int,QString>>();
 
     m_filterByValues->append(QPair<int,QString>(-1,QCoreApplication::translate("MainWindow", "Everywhere", nullptr)));
-    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::ProcessName),QCoreApplication::translate("MainWindow", "By name", nullptr)));
-    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::PID),QCoreApplication::translate("MainWindow", "By PID", nullptr)));
-    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::ExecutablePath),QCoreApplication::translate("MainWindow", "By Execution path", nullptr)));
+    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::ProcessName),QCoreApplication::translate("MainWindow", "ByName", nullptr)));
+    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::PID),QCoreApplication::translate("MainWindow", "ByPid", nullptr)));
+    m_filterByValues->append(QPair<int,QString>(static_cast<int>(ProcessTableModel::Properties::ExecutablePath),QCoreApplication::translate("MainWindow", "ByExecutionPath", nullptr)));
 
     m_filterByComboboxModel->populate(m_filterByValues);
     
@@ -197,7 +197,7 @@ void MainWindow::setupUi()
     m_filterLayout->addWidget(m_filterLineEdit, 3);
     m_filterLayout->addWidget(m_filterComboBox, 1);
     m_contextMenu = new QMenu();
-    auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "Kill process", nullptr), m_contextMenu);
+    auto killProcessAction = new QAction(QCoreApplication::translate("MainWindow", "KillProcess", nullptr), m_contextMenu);
     auto propertiesAction = new QAction(QCoreApplication::translate("MainWindow", "Properties...", nullptr), m_contextMenu);
     connect(killProcessAction, &QAction::triggered, this, &MainWindow::onKillProcessMenuActionClicked);
     connect(propertiesAction, &QAction::triggered, this, &MainWindow::onPropertiesMenuActionClicked);
@@ -234,13 +234,13 @@ void MainWindow::setupUi()
 
     connectSignalsAndSlots();
 
-    m_processInfoTimer->start(2000);
+    m_processInfoTimer->start(1000);
 } // setupUi
 
 QLineEdit* MainWindow::createFilterWidget()
 {
     QLineEdit* widget = new QLineEdit();
-    widget->setPlaceholderText(tr("Search"));
+    widget->setPlaceholderText(QCoreApplication::translate("MainWindow", "Search", nullptr));
     //widget->setValidator(new QRegExpValidator(QRegExp("[A-Za-z]{0,255}")));
     connect(widget, &QLineEdit::textChanged,[=](const QString & text)
             {
@@ -363,7 +363,7 @@ MainWindow::~MainWindow()
 void MainWindow::OnProcessInfoReceived(QFutureWatcher<std::map<unsigned int, ProcessInfo>>* processesStateWatcher)
 {
     auto data = processesStateWatcher->result();
-
+    qDebug() << "Result received, continues in thread " << QThread::currentThreadId();
     if (m_displayAsTree)
     {
         m_treeViewModel->load(data);

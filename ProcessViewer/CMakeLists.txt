@@ -26,14 +26,16 @@ set(PROJECT_SOURCES
         mainwindow.h
         processtreemodel.h
         processtreemodel.cpp
+        processtablemodel.h
+        processtablemodel.cpp
+
         processtreeitem.h
         processtreeitem.cpp
         iprocessservice.h
-        #iprocessservice.cpp
         processservice.h
         processservice.cpp
         #${TS_FILES}
-        #mainwindow.ui
+
 )
 
 set(LUPDATE_EXECUTABLE "${CMAKE_PREFIX_PATH}/bin/lupdate.exe")
