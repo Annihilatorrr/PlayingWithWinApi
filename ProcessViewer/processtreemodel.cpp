@@ -22,20 +22,27 @@ void ProcessTreeModel::load(std::map<unsigned int, ProcessInfo> &processInfoReco
         auto existintgTreeItemIt = itemsTree.find(processId);
         if (existintgTreeItemIt != itemsTree.end())
         {
-            existintgTreeItemIt->second->setName(QString::fromStdWString(pi.name));
-            existintgTreeItemIt->second->setWorkingSetSize(pi.extendedInfo.memoryInfo.WorkingSetSize);
-            existintgTreeItemIt->second->setPageFileUsage(pi.extendedInfo.memoryInfo.PageFileUsage);
+            auto& existingItem = *existintgTreeItemIt->second;
+            existingItem.setName(QString::fromStdWString(pi.name));
+            existingItem.setWorkingSetSize(pi.extendedInfo.memoryInfo.WorkingSetSize);
+            existingItem.setPageFileUsage(pi.extendedInfo.memoryInfo.PageFileUsage);
 
-            auto time = pi.perfData.frequency100Ns - existintgTreeItemIt->second->getFrequency();
+            auto time = pi.perfData.frequency100Ns - existingItem.getFrequency();
             if (time != 0)
             {
-                auto cpu = pi.perfData.percentProcessorTime - existintgTreeItemIt->second->getPercentage();
+                auto cpu = pi.perfData.percentProcessorTime - existingItem.getPercentage();
                 double ratioPerCpuInPercents{double(cpu) / time/m_processorCount*100};
                 double cpuUsage{std::roundf( ratioPerCpuInPercents*100)/100.0};
-                existintgTreeItemIt->second->setCpuUsage(cpuUsage);
+
+                if (existingItem.getId() != 0)
+                {
+                    itemsTree[0]->setCpuUsage(itemsTree[0]->getCpuUsage() - cpuUsage);
+                }
+
+                existingItem.setCpuUsage(cpuUsage);
             }
-            existintgTreeItemIt->second->setPercentage(pi.perfData.percentProcessorTime);
-            existintgTreeItemIt->second->setFrequency(pi.perfData.frequency100Ns);
+            existingItem.setPercentage(pi.perfData.percentProcessorTime);
+            existingItem.setFrequency(pi.perfData.frequency100Ns);
         }
         else
         {
